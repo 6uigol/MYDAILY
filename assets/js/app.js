@@ -56,6 +56,7 @@ let reportModal = null;
 let localBackupTimer = null;
 let authFlowInProgress = false;
 let authResolved = false;
+let logoutInProgress = false;
 
 const loginForm = document.getElementById('login-form');
 const registerForm = document.getElementById('register-form');
@@ -477,10 +478,37 @@ selectors.copyReportButton.addEventListener('click', async () => {
   }, 2000);
 });
 
-selectors.logoutButton.addEventListener('click', async () => {
-  await saveCloudData();
-  await signOut(auth);
-});
+async function handleLogout() {
+  if (logoutInProgress) return;
+
+  logoutInProgress = true;
+  selectors.logoutButton.disabled = true;
+  const originalLabel = selectors.logoutButton.textContent;
+  selectors.logoutButton.textContent = 'Saindo...';
+  setStatus('Encerrando sua sessão com segurança...');
+
+  try {
+    await saveCloudData();
+  } catch (error) {
+    console.error('Falha ao sincronizar antes do logout:', error);
+  }
+
+  try {
+    await signOut(auth);
+    currentUser = null;
+    showScreen('auth');
+    setStatus('Sessão encerrada com sucesso.', 'success');
+  } catch (error) {
+    console.error(error);
+    setStatus('Não foi possível sair agora. Tente novamente em instantes.', 'danger');
+  } finally {
+    logoutInProgress = false;
+    selectors.logoutButton.disabled = false;
+    selectors.logoutButton.textContent = originalLabel;
+  }
+}
+
+selectors.logoutButton.addEventListener('click', handleLogout);
 
 selectors.queueField.addEventListener('input', saveLocalBackupDebounced);
 selectors.notebookField.addEventListener('input', saveLocalBackupDebounced);
