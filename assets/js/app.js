@@ -57,6 +57,8 @@ let localBackupTimer = null;
 let authFlowInProgress = false;
 let authResolved = false;
 let logoutInProgress = false;
+const LOGOUT_SYNC_TIMEOUT_MS = 4000;
+const LOGOUT_TIMEOUT_MS = 8000;
 
 const loginForm = document.getElementById('login-form');
 const registerForm = document.getElementById('register-form');
@@ -117,6 +119,27 @@ function setAuthBusy(formKey, busy, label) {
     labelNode.textContent = key === formKey && busy ? label : defaultLabel;
     spinner.classList.toggle('d-none', !(key === formKey && busy));
   });
+}
+
+function setLogoutButtonState(inProgress) {
+  const button = selectors.logoutButton;
+  if (!button) return;
+
+  if (!button.dataset.defaultLabel) {
+    button.dataset.defaultLabel = button.textContent.trim() || 'Sair';
+  }
+
+  button.disabled = inProgress;
+  button.textContent = inProgress ? 'Saindo...' : button.dataset.defaultLabel;
+}
+
+function withTimeout(promise, timeoutMs, timeoutMessage) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      window.setTimeout(() => reject(new Error(timeoutMessage)), timeoutMs);
+    })
+  ]);
 }
 
 function showScreen(name) {
@@ -482,19 +505,25 @@ async function handleLogout() {
   if (logoutInProgress) return;
 
   logoutInProgress = true;
-  selectors.logoutButton.disabled = true;
-  const originalLabel = selectors.logoutButton.textContent;
-  selectors.logoutButton.textContent = 'Saindo...';
+  setLogoutButtonState(true);
   setStatus('Encerrando sua sessão com segurança...');
 
   try {
-    await saveCloudData();
+    await withTimeout(
+      saveCloudData(),
+      LOGOUT_SYNC_TIMEOUT_MS,
+      'Tempo limite ao sincronizar os dados antes de sair.'
+    );
   } catch (error) {
     console.error('Falha ao sincronizar antes do logout:', error);
   }
 
   try {
-    await signOut(auth);
+    await withTimeout(
+      signOut(auth),
+      LOGOUT_TIMEOUT_MS,
+      'Tempo limite excedido ao encerrar a sessão.'
+    );
     currentUser = null;
     showScreen('auth');
     setStatus('Sessão encerrada com sucesso.', 'success');
@@ -503,8 +532,7 @@ async function handleLogout() {
     setStatus('Não foi possível sair agora. Tente novamente em instantes.', 'danger');
   } finally {
     logoutInProgress = false;
-    selectors.logoutButton.disabled = false;
-    selectors.logoutButton.textContent = originalLabel;
+    setLogoutButtonState(false);
   }
 }
 
