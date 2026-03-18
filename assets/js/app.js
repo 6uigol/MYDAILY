@@ -40,7 +40,10 @@ const selectors = {
   chartsTab: document.getElementById('charts-tab'),
   kpiTasks: document.getElementById('kpi-tasks'),
   kpiHours: document.getElementById('kpi-hours'),
-  kpiEfficiency: document.getElementById('kpi-efficiency')
+  kpiEfficiency: document.getElementById('kpi-efficiency'),
+  loadingOverlay: document.getElementById('global-loading'),
+  loadingTitle: document.getElementById('loading-title'),
+  loadingMessage: document.getElementById('loading-message')
 };
 
 let currentSelectedDate = new Date().toISOString().split('T')[0];
@@ -50,10 +53,17 @@ let trendChart = null;
 let distChart = null;
 let syncCountdown = 30;
 let reportModal = null;
+let localBackupTimer = null;
+let authFlowInProgress = false;
 
 const loginForm = document.getElementById('login-form');
 const registerForm = document.getElementById('register-form');
 const resetPasswordButton = document.getElementById('reset-password-btn');
+const authForms = [loginForm, registerForm];
+const authButtons = {
+  login: document.getElementById('login-submit-btn'),
+  register: document.getElementById('register-submit-btn')
+};
 
 function loadLocalBackup() {
   try {
@@ -73,15 +83,38 @@ function saveLocalBackup() {
 
 function setStatus(message, type = 'info') {
   selectors.authStatus.textContent = message;
-  selectors.systemStatus.textContent = message;
   const colorMap = {
     info: 'SYSTEM_READY',
     success: 'SYNC_OK',
     danger: 'SYNC_ERROR'
   };
-  if (selectors.systemStatus && colorMap[type]) {
-    selectors.systemStatus.textContent = colorMap[type];
-  }
+  selectors.systemStatus.textContent = colorMap[type] || colorMap.info;
+}
+
+function setLoadingState(visible, title = 'Preparando seu ambiente', message = 'Estamos organizando seus dados para abrir a experiência completa.') {
+  selectors.loadingTitle.textContent = title;
+  selectors.loadingMessage.textContent = message;
+  selectors.loadingOverlay.classList.toggle('active', visible);
+  selectors.loadingOverlay.setAttribute('aria-busy', String(visible));
+}
+
+function setAuthBusy(formKey, busy, label) {
+  authFlowInProgress = busy;
+  authForms.forEach((form) => {
+    form.classList.toggle('is-loading', busy);
+    Array.from(form.elements).forEach((element) => {
+      element.disabled = busy;
+    });
+  });
+  resetPasswordButton.disabled = busy;
+
+  Object.entries(authButtons).forEach(([key, button]) => {
+    const spinner = button.querySelector('.spinner-border');
+    const labelNode = button.querySelector('.btn-label');
+    const defaultLabel = key === 'login' ? 'Entrar' : 'Criar conta';
+    labelNode.textContent = key === formKey && busy ? label : defaultLabel;
+    spinner.classList.toggle('d-none', !(key === formKey && busy));
+  });
 }
 
 function showScreen(name) {
@@ -133,8 +166,8 @@ function renderAll() {
     const data = localDb.reports[dateStr] || { tasks: [], comments: '' };
 
     selectors.renderArea.insertAdjacentHTML('beforeend', `
-      <div class="col-xl-4">
-        <div class="glass-card h-100 p-4">
+      <div class="col-xl-4 col-md-6">
+        <div class="glass-card task-card h-100 p-4">
           <div class="d-flex justify-content-between mb-3 gap-3">
             <h6 class="fw-bold ${index === 2 ? 'text-primary' : ''}">${labels[index]}</h6>
             <small class="opacity-50">${dateObject.toLocaleDateString('pt-BR')}</small>
@@ -211,7 +244,7 @@ async function saveCloudData(manual = false) {
     setStatus('Dados sincronizados com sucesso.', 'success');
   } catch (error) {
     console.error(error);
-    setStatus(getFriendlyFirebaseError(error), 'danger');
+    setStatus(getFriendlyAuthError(error), 'danger');
   } finally {
     if (manual) {
       selectors.saveButton.disabled = false;
@@ -232,7 +265,6 @@ async function loadCloudData(user) {
       updatedAt: cloudData.updatedAt?.toDate?.()?.toISOString?.() || localDb.updatedAt
     };
   } else {
-    localDb = loadLocalBackup();
     await setDoc(cloudRef, {
       ...localDb,
       email: user.email,
@@ -244,6 +276,13 @@ async function loadCloudData(user) {
   saveLocalBackup();
   selectors.reportDatePicker.value = currentSelectedDate;
   selectors.userEmail.textContent = user.email;
+  renderAll();
+  updateCharts();
+}
+
+function hydrateAppFromLocalData(user) {
+  selectors.reportDatePicker.value = currentSelectedDate;
+  selectors.userEmail.textContent = user?.email || '--';
   renderAll();
   updateCharts();
 }
@@ -339,19 +378,20 @@ function buildReport() {
   return text;
 }
 
-function getFriendlyFirebaseError(error) {
+function getFriendlyAuthError(error) {
   const code = error?.code || '';
   const map = {
-    'auth/email-already-in-use': 'Este e-mail já está cadastrado.',
-    'auth/invalid-credential': 'E-mail ou senha inválidos.',
-    'auth/invalid-email': 'O e-mail informado é inválido.',
-    'auth/missing-password': 'Informe sua senha.',
-    'auth/network-request-failed': 'Falha de rede ao falar com o Firebase.',
-    'auth/too-many-requests': 'Muitas tentativas. Tente novamente em instantes.',
-    'auth/user-not-found': 'Usuário não encontrado.',
-    'auth/weak-password': 'Use uma senha com pelo menos 6 caracteres.'
+    'auth/email-already-in-use': 'Este e-mail já está em uso. Tente entrar ou recuperar sua senha.',
+    'auth/invalid-credential': 'E-mail ou senha incorretos. Revise os dados e tente novamente.',
+    'auth/invalid-email': 'O e-mail informado não é válido.',
+    'auth/missing-password': 'Informe sua senha para continuar.',
+    'auth/network-request-failed': 'Não foi possível concluir agora. Verifique sua conexão e tente novamente.',
+    'auth/too-many-requests': 'Muitas tentativas em sequência. Aguarde alguns instantes e tente novamente.',
+    'auth/user-not-found': 'Não encontramos uma conta com esse e-mail.',
+    'auth/weak-password': 'Use uma senha com pelo menos 6 caracteres.',
+    'permission-denied': 'Você não tem permissão para concluir essa ação no momento.'
   };
-  return map[code] || 'Não foi possível concluir a operação no Firebase.';
+  return map[code] || 'Não foi possível concluir a operação agora. Tente novamente em instantes.';
 }
 
 loginForm.addEventListener('submit', async (event) => {
@@ -360,10 +400,14 @@ loginForm.addEventListener('submit', async (event) => {
   const password = document.getElementById('login-password').value;
 
   try {
-    setStatus('Autenticando...');
+    setAuthBusy('login', true, 'Entrando...');
+    setStatus('Validando seu acesso...');
+    setLoadingState(true, 'Entrando no MyDaily', 'Estamos confirmando suas credenciais e preparando o seu painel.');
     await signInWithEmailAndPassword(auth, email, password);
   } catch (error) {
-    setStatus(getFriendlyFirebaseError(error), 'danger');
+    setLoadingState(false);
+    setStatus(getFriendlyAuthError(error), 'danger');
+    setAuthBusy('login', false, 'Entrar');
   }
 });
 
@@ -374,30 +418,35 @@ registerForm.addEventListener('submit', async (event) => {
   const confirmPassword = document.getElementById('register-confirm-password').value;
 
   if (password !== confirmPassword) {
-    setStatus('As senhas não coincidem.', 'danger');
+    setStatus('As senhas não coincidem. Revise os campos e tente novamente.', 'danger');
     return;
   }
 
   try {
-    setStatus('Criando conta...');
+    setAuthBusy('register', true, 'Criando...');
+    setStatus('Criando sua conta...');
+    setLoadingState(true, 'Criando sua conta', 'Estamos configurando seu acesso para liberar o painel em seguida.');
     await createUserWithEmailAndPassword(auth, email, password);
   } catch (error) {
-    setStatus(getFriendlyFirebaseError(error), 'danger');
+    setLoadingState(false);
+    setStatus(getFriendlyAuthError(error), 'danger');
+    setAuthBusy('register', false, 'Criar conta');
   }
 });
 
 resetPasswordButton.addEventListener('click', async () => {
   const email = document.getElementById('login-email').value.trim() || document.getElementById('register-email').value.trim();
   if (!email) {
-    setStatus('Informe um e-mail para redefinir a senha.', 'danger');
+    setStatus('Informe um e-mail para enviarmos as instruções de recuperação.', 'danger');
     return;
   }
 
   try {
+    setStatus('Enviando instruções de recuperação...');
     await sendPasswordResetEmail(auth, email);
-    setStatus('E-mail de recuperação enviado.', 'success');
+    setStatus('Enviamos as instruções de recuperação para o seu e-mail.', 'success');
   } catch (error) {
-    setStatus(getFriendlyFirebaseError(error), 'danger');
+    setStatus(getFriendlyAuthError(error), 'danger');
   }
 });
 
@@ -443,7 +492,6 @@ selectors.chartsTab.addEventListener('click', () => {
   updateCharts();
 });
 
-let localBackupTimer = null;
 function saveLocalBackupDebounced() {
   window.clearTimeout(localBackupTimer);
   localBackupTimer = window.setTimeout(() => {
@@ -453,27 +501,35 @@ function saveLocalBackupDebounced() {
 }
 
 onAuthStateChanged(auth, async (user) => {
-  reportModal = new bootstrap.Modal(document.getElementById('reportModal'));
+  reportModal = reportModal || new bootstrap.Modal(document.getElementById('reportModal'));
 
   if (!user) {
     currentUser = null;
     showScreen('auth');
     selectors.userEmail.textContent = '--';
     selectors.lastSync.textContent = 'Último sync: --:--:--';
-    setStatus('Faça login para acessar seu workspace online.');
+    setStatus('Faça login para acessar seu workspace com segurança.');
+    setAuthBusy('login', false, 'Entrar');
+    setLoadingState(false);
     return;
   }
 
   try {
     currentUser = user;
-    setStatus('Carregando dados da nuvem...');
-    await loadCloudData(user);
     showScreen('app');
-    setStatus('Workspace online carregado.', 'success');
+    hydrateAppFromLocalData(user);
+    setStatus('Abrindo seu painel...');
+    setLoadingState(true, 'Carregando seu painel', 'Você já pode visualizar a estrutura enquanto finalizamos a sincronização.');
+    await loadCloudData(user);
+    setStatus('Painel pronto para uso.', 'success');
   } catch (error) {
     console.error(error);
-    setStatus('Falha ao carregar dados do Firestore.', 'danger');
+    setStatus('Não foi possível carregar seus dados agora. Tente novamente em instantes.', 'danger');
     showScreen('auth');
+  } finally {
+    setAuthBusy('login', false, 'Entrar');
+    setAuthBusy('register', false, 'Criar conta');
+    setLoadingState(false);
   }
 });
 
@@ -485,6 +541,7 @@ window.setInterval(() => {
 }, 1000);
 
 window.addEventListener('beforeunload', () => {
+  if (authFlowInProgress) return;
   collectCurrentScreenData();
   saveLocalBackup();
 });

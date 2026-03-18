@@ -230,3 +230,149 @@ body {
     height: 60vh;
   }
 }
+
+
+.auth-subtitle {
+  max-width: 34rem;
+  color: rgba(255, 255, 255, 0.72);
+  line-height: 1.6;
+}
+
+.auth-badge {
+  background: rgba(61, 90, 254, 0.12);
+  color: #dbe6ff;
+  border: 1px solid rgba(61, 90, 254, 0.28);
+}
+
+.auth-highlight {
+  border-radius: 18px;
+}
+
+.auth-footer {
+  min-height: 32px;
+}
+
+.status-copy {
+  text-align: right;
+}
+
+.auth-submit-btn {
+  min-height: 58px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(3, 3, 3, 0.88);
+  backdrop-filter: blur(14px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 2200;
+}
+
+.loading-overlay.active {
+  display: flex;
+}
+
+.loading-panel {
+  width: min(100%, 460px);
+  padding: 28px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.is-loading {
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+.task-card {
+  min-height: 100%;
+}
+
+@media (max-width: 991px) {
+  #auth-screen {
+    align-items: stretch;
+    padding: 20px 14px;
+  }
+
+  .auth-card {
+    width: 100%;
+    border-radius: 22px;
+  }
+
+  .header-actions {
+    justify-content: stretch;
+  }
+
+  .header-actions > * {
+    width: 100%;
+  }
+
+  .pill-shell {
+    justify-content: space-between;
+    border-radius: 18px;
+  }
+
+  .header-btn {
+    min-height: 56px;
+  }
+
+  .status-copy {
+    width: 100%;
+    text-align: left;
+  }
+
+  .loading-panel {
+    padding: 24px;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 575px) {
+  body {
+    background-size: 32px 32px;
+  }
+
+  .glass-card {
+    border-radius: 20px;
+  }
+
+  .brand-title {
+    letter-spacing: -1px;
+  }
+
+  .nav.nav-pills {
+    flex-wrap: nowrap;
+  }
+
+  .nav.nav-pills .nav-item,
+  .nav.nav-pills .nav-link {
+    width: 100%;
+  }
+
+  .queue-area {
+    min-height: 260px;
+    padding: 20px !important;
+  }
+
+  .note-field {
+    padding: 20px;
+  }
+
+  .chart-container {
+    height: 280px;
+  }
+
+  .status-bar {
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+    font-size: 0.72rem;
+  }
+}

@@ -1,9 +1,8 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js';
-import { getAnalytics, isSupported } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-analytics.js';
 import { getAuth } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
 import { getFirestore } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
 
-const firebaseConfig = {
+const serviceConfig = {
   apiKey: 'AIzaSyDGoUX-LZYOUdXK8bq0sVS0BZ6mtSyj6SU',
   authDomain: 'mydaily-dcccb.firebaseapp.com',
   projectId: 'mydaily-dcccb',
@@ -13,18 +12,8 @@ const firebaseConfig = {
   measurementId: 'G-4NNV1VQHK8'
 };
 
-const app = initializeApp(firebaseConfig);
+const app = initializeApp(serviceConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-let analytics = null;
-
-isSupported().then((supported) => {
-  if (supported) {
-    analytics = getAnalytics(app);
-  }
-}).catch(() => {
-  analytics = null;
-});
-
-export { app, auth, db, analytics, firebaseConfig };
+export { app, auth, db };
