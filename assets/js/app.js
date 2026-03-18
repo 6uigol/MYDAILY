@@ -55,6 +55,7 @@ let syncCountdown = 30;
 let reportModal = null;
 let localBackupTimer = null;
 let authFlowInProgress = false;
+let authResolved = false;
 
 const loginForm = document.getElementById('login-form');
 const registerForm = document.getElementById('register-form');
@@ -402,10 +403,8 @@ loginForm.addEventListener('submit', async (event) => {
   try {
     setAuthBusy('login', true, 'Entrando...');
     setStatus('Validando seu acesso...');
-    setLoadingState(true, 'Entrando no MyDaily', 'Estamos confirmando suas credenciais e preparando o seu painel.');
     await signInWithEmailAndPassword(auth, email, password);
   } catch (error) {
-    setLoadingState(false);
     setStatus(getFriendlyAuthError(error), 'danger');
     setAuthBusy('login', false, 'Entrar');
   }
@@ -425,10 +424,8 @@ registerForm.addEventListener('submit', async (event) => {
   try {
     setAuthBusy('register', true, 'Criando...');
     setStatus('Criando sua conta...');
-    setLoadingState(true, 'Criando sua conta', 'Estamos configurando seu acesso para liberar o painel em seguida.');
     await createUserWithEmailAndPassword(auth, email, password);
   } catch (error) {
-    setLoadingState(false);
     setStatus(getFriendlyAuthError(error), 'danger');
     setAuthBusy('register', false, 'Criar conta');
   }
@@ -503,13 +500,19 @@ function saveLocalBackupDebounced() {
 onAuthStateChanged(auth, async (user) => {
   reportModal = reportModal || new bootstrap.Modal(document.getElementById('reportModal'));
 
+  if (!authResolved) {
+    setLoadingState(true, 'Preparando seu ambiente', 'Estamos validando sua sessão para abrir a experiência correta.');
+  }
+
   if (!user) {
+    authResolved = true;
     currentUser = null;
     showScreen('auth');
     selectors.userEmail.textContent = '--';
     selectors.lastSync.textContent = 'Último sync: --:--:--';
     setStatus('Faça login para acessar seu workspace com segurança.');
     setAuthBusy('login', false, 'Entrar');
+    setAuthBusy('register', false, 'Criar conta');
     setLoadingState(false);
     return;
   }
@@ -518,8 +521,9 @@ onAuthStateChanged(auth, async (user) => {
     currentUser = user;
     showScreen('app');
     hydrateAppFromLocalData(user);
-    setStatus('Abrindo seu painel...');
-    setLoadingState(true, 'Carregando seu painel', 'Você já pode visualizar a estrutura enquanto finalizamos a sincronização.');
+    authResolved = true;
+    setLoadingState(false);
+    setStatus('Sincronizando seus dados em segundo plano...');
     await loadCloudData(user);
     setStatus('Painel pronto para uso.', 'success');
   } catch (error) {
