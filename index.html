@@ -2,7 +2,7 @@
 <html lang="pt-BR" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>MyDaily</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='titanGrad' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' stop-color='%233d5afe'/><stop offset='100%' stop-color='%2300f2ff'/></linearGradient></defs><rect width='100' height='100' rx='22' fill='url(%23titanGrad)'/><text x='50%' y='50%' dominant-baseline='central' text-anchor='middle' font-family='sans-serif' font-weight='900' font-size='75' fill='white'>M</text></svg>">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -11,18 +11,36 @@
   <link rel="stylesheet" href="assets/css/styles.css">
 </head>
 <body>
+  <div id="global-loading" class="loading-overlay active" aria-live="polite" aria-busy="true">
+    <div class="loading-panel glass-card">
+      <div class="spinner-border text-info" role="status" aria-hidden="true"></div>
+      <div>
+        <p class="tiny-label mb-2">MyDaily</p>
+        <h2 class="h5 fw-bold mb-2" id="loading-title">Preparando seu ambiente</h2>
+        <p class="mb-0 text-secondary" id="loading-message">Estamos organizando seus dados para abrir a experiência completa.</p>
+      </div>
+    </div>
+  </div>
+
   <div id="auth-screen" class="screen-wrapper active">
     <div class="glass-card auth-card p-4 p-lg-5">
-      <div class="d-flex align-items-center justify-content-between gap-3 mb-4 flex-wrap">
+      <div class="d-flex align-items-start justify-content-between gap-3 mb-4 flex-wrap">
         <div>
-          <p class="text-uppercase tiny-label mb-2">Cloud workspace</p>
-          <h1 class="fw-bold mb-0 brand-title">MY<span class="text-primary">DAILY</span></h1>
+          <p class="text-uppercase tiny-label mb-2">Planejamento diário inteligente</p>
+          <h1 class="fw-bold mb-2 brand-title">MY<span class="text-primary">DAILY</span></h1>
+          <p class="auth-subtitle mb-0">Entre para continuar seu dia com rapidez, clareza e sincronização segura.</p>
         </div>
-        <span class="badge rounded-pill text-bg-primary px-3 py-2">Firebase Online</span>
+        <span class="badge rounded-pill auth-badge px-3 py-2">Acesso seguro</span>
       </div>
 
-      <div class="alert alert-info border-0 soft-alert mb-4">
-        Entre com e-mail e senha para sincronizar seu MyDaily na internet usando o projeto <strong>mydaily-dcccb</strong>.
+      <div class="alert border-0 soft-alert mb-4 auth-highlight">
+        <div class="d-flex gap-3 align-items-start">
+          <i class="bi bi-phone text-info fs-4"></i>
+          <div>
+            <strong class="d-block mb-1">Experiência otimizada para celular</strong>
+            <span>Fluxo mais direto, mensagens mais claras e entrada mais rápida para chegar ao seu painel sem atrito.</span>
+          </div>
+        </div>
       </div>
 
       <ul class="nav nav-pills nav-fill gap-2 mb-4" id="authTabs" role="tablist">
@@ -38,45 +56,51 @@
         <div class="tab-pane fade show active" id="login-pane" role="tabpanel">
           <form id="login-form" class="d-grid gap-3">
             <div>
-              <label class="form-label">E-mail</label>
-              <input type="email" id="login-email" class="form-control form-control-lg" placeholder="voce@exemplo.com" required>
+              <label class="form-label">E-mail corporativo ou pessoal</label>
+              <input type="email" id="login-email" class="form-control form-control-lg" placeholder="voce@exemplo.com" autocomplete="email" inputmode="email" required>
             </div>
             <div>
               <label class="form-label">Senha</label>
-              <input type="password" id="login-password" class="form-control form-control-lg" placeholder="Mínimo de 6 caracteres" required>
+              <input type="password" id="login-password" class="form-control form-control-lg" placeholder="Digite sua senha" autocomplete="current-password" required>
             </div>
-            <button type="submit" class="btn btn-cyber-primary btn-lg">Entrar e sincronizar</button>
+            <button type="submit" class="btn btn-cyber-primary btn-lg auth-submit-btn" id="login-submit-btn">
+              <span class="btn-label">Entrar</span>
+              <span class="spinner-border spinner-border-sm d-none" aria-hidden="true"></span>
+            </button>
           </form>
         </div>
         <div class="tab-pane fade" id="register-pane" role="tabpanel">
           <form id="register-form" class="d-grid gap-3">
             <div>
               <label class="form-label">E-mail</label>
-              <input type="email" id="register-email" class="form-control form-control-lg" value="Gui.lima3009@gmail.com" required>
+              <input type="email" id="register-email" class="form-control form-control-lg" placeholder="voce@exemplo.com" autocomplete="email" inputmode="email" required>
             </div>
             <div>
               <label class="form-label">Senha</label>
-              <input type="password" id="register-password" class="form-control form-control-lg" placeholder="Crie uma senha segura" minlength="6" required>
+              <input type="password" id="register-password" class="form-control form-control-lg" placeholder="Crie uma senha segura" autocomplete="new-password" minlength="6" required>
             </div>
             <div>
               <label class="form-label">Confirmar senha</label>
-              <input type="password" id="register-confirm-password" class="form-control form-control-lg" placeholder="Repita a senha" minlength="6" required>
+              <input type="password" id="register-confirm-password" class="form-control form-control-lg" placeholder="Repita a senha" autocomplete="new-password" minlength="6" required>
             </div>
-            <button type="submit" class="btn btn-outline-info btn-lg">Criar conta online</button>
+            <button type="submit" class="btn btn-outline-info btn-lg auth-submit-btn" id="register-submit-btn">
+              <span class="btn-label">Criar conta</span>
+              <span class="spinner-border spinner-border-sm d-none" aria-hidden="true"></span>
+            </button>
           </form>
         </div>
       </div>
 
-      <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mt-4 small text-secondary">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mt-4 small auth-footer">
         <button id="reset-password-btn" class="btn btn-link p-0 text-info text-decoration-none">Esqueci minha senha</button>
-        <span id="auth-status">Aguardando autenticação.</span>
+        <span id="auth-status" class="status-copy">Pronto para acessar.</span>
       </div>
     </div>
   </div>
 
   <div id="app-screen" class="screen-wrapper">
-    <div class="container-fluid px-lg-5 py-5 mb-5">
-      <header class="d-flex flex-column flex-xl-row justify-content-between align-items-xl-center mb-5 gap-4">
+    <div class="container-fluid px-lg-5 py-4 py-lg-5 mb-5">
+      <header class="d-flex flex-column flex-xl-row justify-content-between align-items-xl-center mb-4 mb-lg-5 gap-4">
         <div>
           <p class="tiny-label mb-2">Workspace sincronizado</p>
           <h1 class="h2 fw-bold mb-0 brand-title">MY<span class="text-primary">DAILY</span></h1>
@@ -98,12 +122,12 @@
           <div class="fw-semibold" id="user-email">--</div>
         </div>
         <div class="d-flex flex-wrap gap-3 text-secondary small">
-          <span><i class="bi bi-cloud-check me-2 text-info"></i>Banco: <strong class="text-light">MyDaily / Firestore</strong></span>
+          <span><i class="bi bi-shield-check me-2 text-info"></i>Ambiente protegido</span>
           <span><i class="bi bi-arrow-repeat me-2 text-primary"></i>Sincronização automática a cada 30s</span>
         </div>
       </div>
 
-      <ul class="nav nav-pills mb-5 gap-2" id="mainTabs">
+      <ul class="nav nav-pills mb-4 mb-lg-5 gap-2" id="mainTabs">
         <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-logs">Dias</button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-charts" id="charts-tab">Estatísticas</button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-note">Caderno</button></li>
