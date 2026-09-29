@@ -225,6 +225,11 @@
             min-height: calc(100vh - 260px); padding: 28px !important; border-left: 8px solid var(--accent) !important;
             resize: none; overflow: hidden; line-height: 1.8;
         }
+        .notebook-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+        .notebook-tabs { display: flex; align-items: center; gap: 6px; min-width: 0; overflow-x: auto; scrollbar-width: thin; }
+        .notebook-tab { flex: 0 0 auto; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 8px 14px; border: 1px solid var(--border); border-radius: 10px; color: var(--muted); background: transparent; }
+        .notebook-tab.active { color: var(--accent); border-color: var(--accent); background: var(--accent-glow); font-weight: 700; }
+        .notebook-actions { display: flex; flex: 0 0 auto; gap: 6px; }
 
         .chart-container { position: relative; height: 340px; width: 100%; }
         .chart-empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: .9rem; pointer-events: none; }
@@ -309,6 +314,9 @@
 
             textarea.form-control.queue-area { padding: 16px !important; border-left-width: 6px !important; font-size: 1rem; }
             textarea.form-control.notebook-area { padding: 16px !important; border-left-width: 5px !important; }
+            .notebook-toolbar { align-items: stretch; flex-direction: column; }
+            .notebook-tabs { width: 100%; }
+            .notebook-actions .btn:first-child { flex: 1 1 auto; }
             .smart-list { border-left-width: 6px; padding: 8px 4px; }
             .list-item { gap: 8px; padding: 8px 6px; padding-left: calc(6px + var(--lvl, 0) * 16px); }
             .list-check { flex-basis: 24px; width: 24px; height: 24px; margin-top: 1px; }   /* alvo de toque maior */
@@ -498,6 +506,14 @@
 
             <div class="tab-pane fade" id="tab-note">
                 <div class="glass-card p-3 p-md-4">
+                    <div class="notebook-toolbar">
+                        <div id="notebook-tabs" class="notebook-tabs" role="tablist" aria-label="Abas do caderno"></div>
+                        <div class="notebook-actions">
+                            <button type="button" class="btn btn-sm btn-outline-info" id="notebook-add"><i class="bi bi-plus-lg me-1"></i>Nova aba</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="notebook-rename" title="Renomear aba"><i class="bi bi-pencil"></i></button>
+                            <button type="button" class="btn btn-sm btn-outline-danger" id="notebook-delete" title="Excluir aba"><i class="bi bi-trash3"></i></button>
+                        </div>
+                    </div>
                     <textarea id="notebook-field" class="form-control notebook-area" placeholder="Caderno..."></textarea>
                 </div>
             </div>
@@ -612,6 +628,22 @@
     </div>
 </div>
 
+<div class="modal fade" id="notebookDeleteModal" tabindex="-1" aria-labelledby="notebook-delete-title" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
+        <div class="modal-content glass-card">
+            <div class="modal-header border-0">
+                <h5 class="modal-title fw-bold" id="notebook-delete-title">EXCLUIR ABA DO CADERNO?</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body text-secondary" id="notebook-delete-message"></div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" id="notebook-delete-confirm">Excluir aba</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <input type="file" id="import-file" accept=".json,.txt,application/json,text/plain" hidden>
 <div class="toast-wrap" id="toast-wrap"></div>
 
@@ -684,7 +716,24 @@
         charts: { trend: null, dist: null, extra: null, bank: null },
     };
 
-    function emptyProfile() { return { queue: '', notebook: '', settings: { ...DEFAULT_SETTINGS } }; }
+    function notebookId() {
+        return globalThis.crypto?.randomUUID?.() || `note-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    }
+    function normalizeNotebook(value) {
+        if (typeof value === 'string') return { activeId: 'general', tabs: [{ id: 'general', name: 'Geral', content: value }] };
+        const seen = new Set();
+        const tabs = Array.isArray(value?.tabs) ? value.tabs.map(tab => {
+            const id = String(tab?.id || notebookId());
+            if (seen.has(id)) return null;
+            seen.add(id);
+            return { id, name: String(tab?.name || 'Sem título').trim().slice(0, 40) || 'Sem título', content: String(tab?.content ?? '') };
+        }).filter(Boolean) : [];
+        if (!tabs.length) tabs.push({ id: 'general', name: 'Geral', content: '' });
+        const activeId = tabs.some(tab => tab.id === value?.activeId) ? value.activeId : tabs[0].id;
+        return { activeId, tabs };
+    }
+    function notebookLength(value) { return normalizeNotebook(value).tabs.reduce((sum, tab) => sum + tab.name.length + tab.content.length, 0); }
+    function emptyProfile() { return { queue: '', notebook: normalizeNotebook(''), settings: { ...DEFAULT_SETTINGS } }; }
 
     function applyTheme(theme = 'dark') {
         const systemLight = window.matchMedia?.('(prefers-color-scheme: light)').matches;
@@ -857,7 +906,7 @@
         const d = snap.exists() ? snap.data() : {};
         state.profile = {
             queue: String(d.queue ?? ''),
-            notebook: String(d.notebook ?? ''),
+            notebook: normalizeNotebook(d.notebook ?? ''),
             settings: { ...DEFAULT_SETTINGS, ...(d.settings || {}) },
         };
     }
@@ -922,7 +971,7 @@
         if (!state.dirtyDates.size && !state.profileDirty) { refreshStatus(); return true; }
 
         const p = state.profile;
-        if (state.profileDirty && p.queue.length + p.notebook.length > PROFILE_MAX_CHARS) {
+        if (state.profileDirty && p.queue.length + notebookLength(p.notebook) > PROFILE_MAX_CHARS) {
             setStatus('error', 'ANOTAÇÕES + CADERNO GRANDES DEMAIS (LIMITE ~900 MIL CARACTERES)');
             toast('Anotações + caderno passaram do limite do Firestore. Reduza o texto para salvar.', 'danger');
             return false;
@@ -1300,10 +1349,100 @@
     }
 
     function fillProfileFields() {
-        $('queue-field').value = state.profile.queue;
-        $('notebook-field').value = state.profile.notebook;
+        $('queue-field').value = queueMode() === 'text' ? queueTextForEditor(state.profile.queue) : state.profile.queue;
+        renderNotebookTabs();
         autosizeAll();
         if (queueMode() === 'list') renderList();
+    }
+
+    function activeNotebookTab() {
+        const notebook = state.profile.notebook = normalizeNotebook(state.profile.notebook);
+        return notebook.tabs.find(tab => tab.id === notebook.activeId) || notebook.tabs[0];
+    }
+    function renderNotebookTabs() {
+        const notebook = state.profile.notebook = normalizeNotebook(state.profile.notebook);
+        const tabs = $('notebook-tabs');
+        tabs.replaceChildren();
+        notebook.tabs.forEach(tab => {
+            const button = el('button', 'notebook-tab' + (tab.id === notebook.activeId ? ' active' : ''), tab.name);
+            button.type = 'button';
+            button.setAttribute('role', 'tab');
+            button.setAttribute('aria-selected', String(tab.id === notebook.activeId));
+            button.title = tab.name;
+            button.addEventListener('click', () => {
+                if (notebook.activeId === tab.id) return;
+                notebook.activeId = tab.id;
+                $('notebook-field').value = tab.content;
+                markProfileDirty();
+                renderNotebookTabs();
+                autosize($('notebook-field'));
+            });
+            tabs.append(button);
+        });
+        $('notebook-field').value = activeNotebookTab().content;
+        $('notebook-delete').disabled = notebook.tabs.length <= 1;
+    }
+    function addNotebookTab() {
+        const notebook = state.profile.notebook;
+        let name = 'Nova aba', suffix = 2;
+        while (notebook.tabs.some(tab => tab.name.toLocaleLowerCase('pt-BR') === name.toLocaleLowerCase('pt-BR'))) name = `Nova aba ${suffix++}`;
+        const tab = { id: notebookId(), name, content: '' };
+        notebook.tabs.push(tab);
+        notebook.activeId = tab.id;
+        markProfileDirty();
+        renderNotebookTabs();
+        autosize($('notebook-field'));
+        $('notebook-field').focus();
+    }
+    function renameNotebookTab() {
+        const notebook = state.profile.notebook;
+        const tab = activeNotebookTab();
+        const button = $('notebook-tabs').querySelector('.notebook-tab.active');
+        if (!button) return;
+        const input = el('input', 'form-control form-control-sm');
+        input.value = tab.name;
+        input.maxLength = 40;
+        input.setAttribute('aria-label', 'Novo nome da aba');
+        button.replaceWith(input);
+        input.focus();
+        input.select();
+        let finished = false;
+        const finish = save => {
+            if (finished) return;
+            finished = true;
+            const name = input.value.trim();
+            if (save && name && !notebook.tabs.some(other => other.id !== tab.id && other.name.toLocaleLowerCase('pt-BR') === name.toLocaleLowerCase('pt-BR'))) {
+                tab.name = name.slice(0, 40);
+                markProfileDirty();
+            } else if (save && name) toast('Já existe uma aba com esse nome.', 'warning');
+            renderNotebookTabs();
+        };
+        input.addEventListener('blur', () => finish(true));
+        input.addEventListener('keydown', e => {
+            if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+            else if (e.key === 'Escape') { e.preventDefault(); finish(false); }
+        });
+    }
+    let notebookTabPendingDelete = null;
+    function requestDeleteNotebookTab() {
+        const notebook = state.profile.notebook;
+        if (notebook.tabs.length <= 1) return toast('O Caderno precisa manter pelo menos uma aba.', 'info');
+        const tab = activeNotebookTab();
+        notebookTabPendingDelete = tab.id;
+        $('notebook-delete-message').textContent = `A aba “${tab.name}” e todo o conteúdo dela serão removidos.`;
+        bootstrap.Modal.getOrCreateInstance($('notebookDeleteModal')).show();
+    }
+    function deleteNotebookTab() {
+        const notebook = state.profile.notebook;
+        const index = notebook.tabs.findIndex(tab => tab.id === notebookTabPendingDelete);
+        if (index < 0) return;
+        notebook.tabs.splice(index, 1);
+        notebook.activeId = notebook.tabs[Math.min(index, notebook.tabs.length - 1)].id;
+        notebookTabPendingDelete = null;
+        markProfileDirty();
+        bootstrap.Modal.getOrCreateInstance($('notebookDeleteModal')).hide();
+        renderNotebookTabs();
+        autosize($('notebook-field'));
     }
 
     // Cresce a caixa junto com o texto (a rolagem fica na página, não dentro do campo)
@@ -1349,6 +1488,40 @@
             return '';
         }).trimEnd();
         return { text: visible, priority, tags };
+    }
+    const queueMetaPattern = /\[\[md:[pt]=[^\]]*\]\]/g;
+    function queueLineForTextEditor(line) { return String(line).replace(queueMetaPattern, '').replace(/[\t ]+$/g, ''); }
+    function queueTextForEditor(rawQueue) { return String(rawQueue ?? '').split('\n').map(queueLineForTextEditor).join('\n'); }
+    function mergeQueueEditorText(rawQueue, visibleText) {
+        const oldRaw = String(rawQueue ?? '').split('\n');
+        const oldVisible = oldRaw.map(queueLineForTextEditor);
+        const newLines = String(visibleText ?? '').split('\n');
+        const sourceForLine = Array(newLines.length).fill(-1);
+        let prefix = 0;
+        while (prefix < oldVisible.length && prefix < newLines.length && oldVisible[prefix] === newLines[prefix]) {
+            sourceForLine[prefix] = prefix;
+            prefix++;
+        }
+        let oldEnd = oldVisible.length - 1, newEnd = newLines.length - 1;
+        while (oldEnd >= prefix && newEnd >= prefix && oldVisible[oldEnd] === newLines[newEnd]) sourceForLine[newEnd--] = oldEnd--;
+        if (oldEnd - prefix === newEnd - prefix) {
+            for (let i = prefix; i <= newEnd; i++) sourceForLine[i] = i;
+        } else {
+            const available = new Map();
+            for (let i = prefix; i <= oldEnd; i++) {
+                if (!available.has(oldVisible[i])) available.set(oldVisible[i], []);
+                available.get(oldVisible[i]).push(i);
+            }
+            for (let i = prefix; i <= newEnd; i++) {
+                const matches = available.get(newLines[i]);
+                if (matches?.length) sourceForLine[i] = matches.shift();
+            }
+        }
+        return newLines.map((line, i) => {
+            const source = sourceForLine[i];
+            const metadata = source >= 0 ? [...oldRaw[source].matchAll(queueMetaPattern)].map(match => match[0]) : [];
+            return line + (line.trim() && metadata.length ? ' ' + metadata.join(' ') : '');
+        }).join('\n');
     }
     const isHeading = it => !it.blank && /:\s*$/.test(it.text);
     // Título solto ("CREDENCIAIS:") não ganha checkbox; o resto sim
@@ -1902,7 +2075,7 @@
         $('queue-mode-list').className = 'btn btn-sm ' + (list ? 'btn-warning' : 'btn-outline-warning');
         $('queue-mode-text').className = 'btn btn-sm ' + (list ? 'btn-outline-warning' : 'btn-warning');
         if (list) renderList();
-        else { $('queue-field').value = state.profile.queue; autosize($('queue-field')); }
+        else { $('queue-field').value = queueTextForEditor(state.profile.queue); autosize($('queue-field')); }
     }
 
     // ------------------------------------------------------------ Navegação
@@ -2409,6 +2582,23 @@
         return cur.trim() ? cur.trimEnd() + '\n\n' + inc : inc;
     }
 
+    function mergeNotebook(current, incoming) {
+        const destination = normalizeNotebook(current);
+        if (typeof incoming === 'string' || incoming == null) {
+            const tab = destination.tabs.find(item => item.id === destination.activeId) || destination.tabs[0];
+            tab.content = appendText(tab.content, incoming);
+            return destination;
+        }
+        const source = normalizeNotebook(incoming);
+        for (const imported of source.tabs) {
+            const base = `${imported.name} (importado)`;
+            let name = base, suffix = 2;
+            while (destination.tabs.some(tab => tab.name.toLocaleLowerCase('pt-BR') === name.toLocaleLowerCase('pt-BR'))) name = `${base} ${suffix++}`;
+            destination.tabs.push({ id: notebookId(), name: name.slice(0, 40), content: imported.content });
+        }
+        return destination;
+    }
+
     async function importData(data, origem) {
         if (!data || typeof data !== 'object' || typeof data.reports !== 'object' || data.reports === null) {
             throw new Error('O arquivo não parece um backup do MYDAILY.');
@@ -2421,7 +2611,7 @@
         const ok = confirm(
             `Importar ${entries.length} dia(s) de ${origem}?\n\n` +
             `• Dias que já existem na nuvem serão SUBSTITUÍDOS pelos do arquivo.\n` +
-            `• Anotações e caderno do arquivo serão ADICIONADOS ao final dos atuais.`
+            `• Anotações serão adicionadas às atuais; o caderno antigo será acrescentado à aba atual e as abas de um backup novo serão importadas como novas abas.`
         );
         if (!ok) return false;
 
@@ -2436,7 +2626,7 @@
 
         const p = state.profile;
         p.queue = appendText(p.queue, data.queue);
-        p.notebook = appendText(p.notebook, data.notebook);
+        p.notebook = mergeNotebook(p.notebook, data.notebook);
         if (data.settings && typeof data.settings === 'object') {
             const meta = Number(data.settings.metaHoras);
             if (meta > 0 && meta <= 24) p.settings.metaHoras = meta;
@@ -2677,7 +2867,7 @@
         $('rep-hours').checked = storageGet('mydaily_rep_hours') !== '0';
         $('btn-copy').addEventListener('click', copyReport);
 
-        $('queue-field').addEventListener('input', e => { state.profile.queue = e.target.value; autosize(e.target); markProfileDirty(); });
+        $('queue-field').addEventListener('input', e => { state.profile.queue = mergeQueueEditorText(state.profile.queue, e.target.value); autosize(e.target); markProfileDirty(); });
         $('queue-mode-list').addEventListener('click', () => setQueueMode('list'));
         $('queue-mode-text').addEventListener('click', () => setQueueMode('text'));
         $('list-search').addEventListener('input', renderList);
@@ -2689,7 +2879,16 @@
         $('list-hide-done').addEventListener('change', e => { storageSet('mydaily_list_hide_done', e.target.checked ? '1' : '0'); renderList(); });
         $('list-clear-done').addEventListener('click', clearDone);
         setQueueMode(queueMode());
-        $('notebook-field').addEventListener('input', e => { state.profile.notebook = e.target.value; autosize(e.target); markProfileDirty(); });
+        $('notebook-field').addEventListener('input', e => {
+            const tab = activeNotebookTab();
+            tab.content = e.target.value;
+            autosize(e.target);
+            markProfileDirty();
+        });
+        $('notebook-add').addEventListener('click', addNotebookTab);
+        $('notebook-rename').addEventListener('click', renameNotebookTab);
+        $('notebook-delete').addEventListener('click', requestDeleteNotebookTab);
+        $('notebook-delete-confirm').addEventListener('click', deleteNotebookTab);
 
         $('tab-charts-btn').addEventListener('shown.bs.tab', updateCharts);
         document.querySelectorAll('#mainTabs [data-bs-toggle="tab"]').forEach(b => b.addEventListener('shown.bs.tab', autosizeAll));

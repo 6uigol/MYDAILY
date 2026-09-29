@@ -15,7 +15,7 @@ service cloud.firestore {
       allow create, update: if isOwner(uid)
         && request.resource.data.keys().hasOnly(['queue', 'notebook', 'settings', 'updatedAt'])
         && request.resource.data.queue is string
-        && request.resource.data.notebook is string
+        && (request.resource.data.notebook is string || request.resource.data.notebook is map)
         && request.resource.data.settings is map;
 
       match /reports/{date} {
