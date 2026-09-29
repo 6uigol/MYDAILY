@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html lang="pt-br" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MYDAILY</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' stop-color='%233d5afe'/><stop offset='100%' stop-color='%2300f2ff'/></linearGradient></defs><rect width='100' height='100' rx='22' fill='url(%23g)'/><text x='50%' y='50%' dominant-baseline='central' text-anchor='middle' font-family='sans-serif' font-weight='900' font-size='75' fill='white'>M</text></svg>">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;800&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <style>
+        :root {
+            --bg: #030303;
+            --glass: rgba(12, 12, 15, 0.95);
+            --border: rgba(255, 255, 255, 0.08);
+            --accent: #3d5afe;
+            --accent-glow: rgba(61, 90, 254, 0.4);
+            --terminal: #00f2ff;
+            --queue-color: #ff9100;
+            --save-green: #00ff41;
+            --danger: #ff4d6d;
+            --muted: #8a8f98;
+        }
+
+        body {
+            background-color: var(--bg);
+            background-image: linear-gradient(rgba(61, 90, 254, 0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(61, 90, 254, 0.02) 1px, transparent 1px);
+            background-size: 50px 50px;
+            color: #e0e0e0; font-family: 'Inter', sans-serif;
+            min-height: 100vh; overflow-x: hidden; padding-bottom: 48px;
+        }
+
+        .screen {
+            position: fixed; inset: 0; z-index: 2000; background: #000;
+            display: flex; align-items: center; justify-content: center; padding: 16px; overflow-y: auto;
+        }
+        .brand { letter-spacing: -2px; font-weight: 800; }
+
+        .glass-card { background: var(--glass); backdrop-filter: blur(20px); border: 1px solid var(--border); border-radius: 24px; box-shadow: 0 15px 35px rgba(0,0,0,0.6); }
+
+        .form-control, .form-control:focus {
+            background: rgba(0, 0, 0, 0.6); border: 1px solid var(--border); color: var(--terminal);
+            font-family: 'Fira Code', monospace; border-radius: 12px;
+        }
+        .form-control:focus { border-color: var(--accent); box-shadow: 0 0 0 .2rem var(--accent-glow); }
+        .form-control::placeholder { color: rgba(255,255,255,.25); }
+        .form-control.is-invalid { border-color: var(--danger); }
+        .auth-input, .auth-input:focus { color: #fff; font-family: 'Inter', sans-serif; padding: 12px 14px; }
+
+        .btn-cyber-primary { background: var(--accent); color: #fff; border: none; padding: 10px 24px; border-radius: 14px; font-weight: 700; box-shadow: 0 0 20px var(--accent-glow); transition: .2s; }
+        .btn-cyber-primary:hover, .btn-cyber-primary:focus { background: var(--accent); color: #fff; filter: brightness(1.15); }
+        .btn-cyber-primary:disabled { background: var(--accent); color: #fff; opacity: .5; }
+        .btn-dashed { border-style: dashed !important; }
+
+        .divider { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: .8rem; }
+        .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+
+        .date-pill { border-radius: 999px; display: flex; align-items: center; gap: 2px; padding: 6px 10px; }
+        .date-pill input { background: transparent; border: none; color: #fff; font-weight: 700; outline: none; color-scheme: dark; font-size: 1rem; }
+        .header-btn { height: 48px; border-radius: 14px; font-weight: 700; }
+
+        .day-card { transition: border-color .2s; }
+        .day-card.selected { border-color: rgba(61, 90, 254, .55); box-shadow: 0 0 0 1px rgba(61,90,254,.25), 0 15px 35px rgba(0,0,0,.6); }
+        .task-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+        .task-row .t-desc { flex: 1 1 auto; min-width: 0; }
+        .task-row .t-hour { flex: 0 0 78px; width: 78px; text-align: center; }
+        .hours-badge { font-family: 'Fira Code', monospace; color: var(--terminal); font-size: .8rem; background: rgba(0,242,255,.08); border-radius: 8px; padding: 3px 9px; white-space: nowrap; }
+
+        .queue-area {
+            background: repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(255, 145, 0, 0.04) 40px) !important;
+            border-left: 10px solid var(--queue-color) !important;
+            min-height: 320px; height: 460px; resize: vertical;
+            font-size: 1.1rem; line-height: 2; padding: 28px !important;
+        }
+        .notebook-area { min-height: 65vh; padding: 28px !important; border-left: 8px solid var(--accent) !important; resize: vertical; line-height: 1.8; }
+
+        .chart-container { position: relative; height: 340px; width: 100%; }
+        .chart-empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: .9rem; pointer-events: none; }
+        .kpi-value { font-size: 2.2rem; font-weight: 800; color: var(--terminal); line-height: 1.2; }
+        .kpi-label { color: var(--muted); font-size: .8rem; letter-spacing: .5px; }
+
+        .nav-pills .nav-link { color: #aaa; font-weight: 700; border-radius: 12px; }
+        .nav-pills .nav-link.active { background: var(--accent) !important; color: #fff; box-shadow: 0 5px 15px var(--accent-glow); }
+
+        .status-bar {
+            position: fixed; bottom: 0; left: 0; right: 0; background: #000; padding: 8px 20px;
+            border-top: 1px solid var(--border); z-index: 1000; display: flex; justify-content: space-between; gap: 12px;
+            font-size: .75rem; color: var(--muted); font-family: 'Fira Code', monospace;
+        }
+        .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 8px; background: var(--save-green); vertical-align: middle; }
+        .dot.pending { background: #ffd60a; }
+        .dot.saving, .dot.loading { background: var(--terminal); animation: pulse 1s infinite; }
+        .dot.error { background: var(--danger); }
+        .dot.offline { background: var(--queue-color); }
+        @keyframes pulse { 50% { opacity: .3; } }
+
+        .toast-wrap { position: fixed; right: 16px; bottom: 56px; z-index: 3000; display: flex; flex-direction: column; gap: 8px; max-width: calc(100% - 32px); }
+        .mini-toast { background: #111; border: 1px solid var(--border); border-left: 4px solid var(--terminal); border-radius: 12px; padding: 10px 16px; font-size: .9rem; box-shadow: 0 10px 25px rgba(0,0,0,.6); animation: slidein .2s ease; }
+        .mini-toast.success { border-left-color: var(--save-green); }
+        .mini-toast.danger { border-left-color: var(--danger); }
+        .mini-toast.warning { border-left-color: var(--queue-color); }
+        @keyframes slidein { from { transform: translateY(10px); opacity: 0; } }
+
+        .modal-content.glass-card { background: #0b0b0e; }
+        .dropdown-menu { background: #0b0b0e; border: 1px solid var(--border); border-radius: 14px; }
+
+        @media (max-width: 576px) {
+            .status-bar .hide-sm { display: none; }
+            .header-btn { height: 42px; padding-left: 12px; padding-right: 12px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- CARREGANDO -->
+<div id="boot-screen" class="screen">
+    <div class="text-center">
+        <h1 class="brand mb-3" style="font-size:2.6rem">MY<span class="text-primary">DAILY</span></h1>
+        <div class="spinner-border text-primary" role="status"></div>
+    </div>
+</div>
+
+<!-- LOGIN -->
+<div id="auth-screen" class="screen d-none">
+    <div class="glass-card p-4 p-md-5" style="max-width: 440px; width: 100%;">
+        <h1 class="brand text-center mb-1" style="font-size: 2.6rem;">MY<span class="text-primary">DAILY</span></h1>
+        <p class="text-center text-secondary small mb-4" id="auth-subtitle">Entre para sincronizar sua daily</p>
+
+        <div id="config-warning" class="alert alert-danger small d-none">
+            <b>Firebase não configurado.</b> Cole o <code>FIREBASE_CONFIG</code> do seu projeto no início do script deste arquivo (veja o LEIA-ME.md).
+        </div>
+
+        <form id="auth-form" novalidate>
+            <div class="mb-3">
+                <label class="form-label small text-secondary" for="auth-email">E-mail</label>
+                <input type="email" id="auth-email" class="form-control auth-input" autocomplete="email" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label small text-secondary" for="auth-password">Senha</label>
+                <input type="password" id="auth-password" class="form-control auth-input" autocomplete="current-password" required minlength="6">
+            </div>
+            <div class="mb-3 d-none" id="confirm-wrap">
+                <label class="form-label small text-secondary" for="auth-password2">Confirmar senha</label>
+                <input type="password" id="auth-password2" class="form-control auth-input" autocomplete="new-password" minlength="6">
+            </div>
+            <div id="auth-msg" class="small mb-3 d-none"></div>
+            <button type="submit" class="btn btn-cyber-primary w-100 py-2" id="auth-submit">ENTRAR</button>
+        </form>
+
+        <div class="d-flex justify-content-between mt-3">
+            <button type="button" class="btn btn-link p-0 small text-decoration-none" id="auth-toggle">Criar conta</button>
+            <button type="button" class="btn btn-link p-0 small text-secondary text-decoration-none" id="auth-forgot">Esqueci a senha</button>
+        </div>
+
+        <div id="google-wrap">
+            <div class="divider my-3">ou</div>
+            <button type="button" class="btn btn-outline-light w-100 py-2" id="auth-google" style="border-radius:12px">
+                <i class="bi bi-google me-2"></i>Entrar com Google
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- APP -->
+<div id="app" class="d-none">
+    <div class="container-fluid px-3 px-lg-5 py-4 mb-4">
+        <header class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+            <h1 class="brand mb-0" style="font-size: 2.4rem;">MY<span class="text-primary">DAILY</span></h1>
+
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <div class="glass-card date-pill">
+                    <button type="button" class="btn btn-sm btn-link text-light" id="btn-prev" title="Dia anterior (Alt+←)"><i class="bi bi-chevron-left"></i></button>
+                    <input type="date" id="date-picker" aria-label="Data selecionada">
+                    <button type="button" class="btn btn-sm btn-link text-light" id="btn-next" title="Próximo dia (Alt+→)"><i class="bi bi-chevron-right"></i></button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill ms-1" id="btn-today">Hoje</button>
+                </div>
+                <button type="button" class="btn btn-outline-info header-btn px-3" id="btn-report"><i class="bi bi-clipboard-data me-1"></i>RELATÓRIO</button>
+                <button type="button" class="btn btn-cyber-primary header-btn" id="btn-save" title="Salvar agora (Ctrl+S)"><i class="bi bi-cloud-arrow-up me-1"></i>SALVAR</button>
+                <div class="dropdown">
+                    <button type="button" class="btn btn-outline-secondary header-btn dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-person-circle"></i> <span id="user-name" class="d-none d-md-inline"></span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><h6 class="dropdown-header text-truncate" style="max-width:260px" id="user-email"></h6></li>
+                        <li><button type="button" class="dropdown-item" id="btn-settings"><i class="bi bi-gear me-2"></i>Configurações</button></li>
+                        <li><button type="button" class="dropdown-item" id="btn-export"><i class="bi bi-download me-2"></i>Exportar backup (.json)</button></li>
+                        <li><button type="button" class="dropdown-item" id="btn-import"><i class="bi bi-upload me-2"></i>Importar backup (.json / .txt)</button></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><button type="button" class="dropdown-item text-danger" id="btn-logout"><i class="bi bi-box-arrow-right me-2"></i>Sair</button></li>
+                    </ul>
+                </div>
+            </div>
+        </header>
+
+        <div id="legacy-banner" class="alert alert-warning d-none d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <span><i class="bi bi-database-up me-2"></i><span id="legacy-text"></span></span>
+            <span class="d-flex gap-2">
+                <button type="button" class="btn btn-sm btn-warning fw-bold" id="legacy-import">Importar</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="legacy-dismiss">Ignorar</button>
+            </span>
+        </div>
+
+        <ul class="nav nav-pills mb-4 gap-2" id="mainTabs" role="tablist">
+            <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-logs" type="button">DIAS</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-charts" type="button" id="tab-charts-btn">ESTATÍSTICAS</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-note" type="button">CADERNO</button></li>
+        </ul>
+
+        <div class="tab-content">
+            <div class="tab-pane fade show active" id="tab-logs">
+                <div class="row g-4 mb-4" id="render-area"></div>
+                <div class="glass-card p-4 p-md-5 text-warning">
+                    <h3 class="h4 mb-4 fw-bold"><i class="bi bi-journal-code me-3"></i>ANOTAÇÕES</h3>
+                    <textarea id="queue-field" class="form-control queue-area" placeholder="Escreva suas anotações aqui..."></textarea>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="tab-charts">
+                <div class="row g-4 mb-4 text-center">
+                    <div class="col-6 col-md-3"><div class="glass-card p-4 h-100"><div id="kpi-tasks" class="kpi-value">0</div><div class="kpi-label">TASKS NO DIA</div></div></div>
+                    <div class="col-6 col-md-3"><div class="glass-card p-4 h-100"><div id="kpi-hours" class="kpi-value">0</div><div class="kpi-label">HORAS NO DIA</div></div></div>
+                    <div class="col-6 col-md-3"><div class="glass-card p-4 h-100"><div id="kpi-efficiency" class="kpi-value">0%</div><div class="kpi-label" id="kpi-efficiency-label">DA META</div></div></div>
+                    <div class="col-6 col-md-3"><div class="glass-card p-4 h-100"><div id="kpi-avg" class="kpi-value">0</div><div class="kpi-label">MÉDIA 7 DIAS</div></div></div>
+                </div>
+                <div class="row g-4">
+                    <div class="col-lg-8"><div class="glass-card p-4"><h5 class="fw-bold mb-4" style="color:var(--accent)">HORAS — ÚLTIMOS 7 DIAS</h5><div class="chart-container"><canvas id="mainTrendChart"></canvas></div></div></div>
+                    <div class="col-lg-4"><div class="glass-card p-4"><h5 class="fw-bold mb-4" style="color:var(--terminal)">DISTRIBUIÇÃO DO DIA</h5><div class="chart-container"><canvas id="taskDistributionChart"></canvas><div class="chart-empty d-none" id="dist-empty">Sem horas lançadas neste dia</div></div></div></div>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="tab-note">
+                <div class="glass-card p-3 p-md-4">
+                    <textarea id="notebook-field" class="form-control notebook-area" placeholder="Caderno..."></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="status-bar">
+        <div><span id="status-dot" class="dot"></span><span id="status-text">PRONTO</span></div>
+        <div class="hide-sm text-truncate" id="status-user"></div>
+        <div id="last-sync">ÚLTIMO SYNC: --:--:--</div>
+    </div>
+</div>
+
+<!-- RELATÓRIO -->
+<div class="modal fade" id="reportModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content glass-card" style="border: 1px solid var(--terminal);">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" style="color:var(--terminal);">RELATÓRIO DA DAILY</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex flex-wrap gap-4 mb-3 small">
+                    <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="rep-prev"><label class="form-check-label" for="rep-prev">Incluir dia anterior</label></div>
+                    <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="rep-global" checked><label class="form-check-label" for="rep-global">Incluir anotações globais</label></div>
+                </div>
+                <textarea id="base-report-text" class="form-control" rows="16" style="color:#fff; font-size:.9rem; line-height:1.6; border-color:rgba(0,242,255,.15);"></textarea>
+                <div class="small text-secondary mt-2">Você pode editar o texto antes de copiar.</div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-outline-info w-100 py-3 fw-bold" id="btn-copy" style="border-radius:12px">COPIAR PARA ÁREA DE TRANSFERÊNCIA</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CONFIGURAÇÕES -->
+<div class="modal fade" id="settingsModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <form class="modal-content glass-card" id="settings-form">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">CONFIGURAÇÕES</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <label class="form-label small text-secondary" for="set-meta">Meta de horas por dia</label>
+                <input type="number" id="set-meta" class="form-control mb-4" min="0.5" max="24" step="0.5" required>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="set-skip">
+                    <label class="form-check-label" for="set-skip">Pular sábado e domingo nos dias exibidos e nas setas</label>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="submit" class="btn btn-cyber-primary w-100">SALVAR CONFIGURAÇÕES</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<input type="file" id="import-file" accept=".json,.txt,application/json,text/plain" hidden>
+<div class="toast-wrap" id="toast-wrap"></div>
+
+<script type="module">
+    // =====================================================================
+    //  CONFIGURAÇÃO DO FIREBASE
+    //  Console Firebase > Configurações do projeto > Seus apps > App da Web
+    //  Cole aqui o objeto firebaseConfig do seu projeto.
+    // =====================================================================
+    const FIREBASE_CONFIG = {
+        apiKey: "AIzaSyDGoUX-LZYOUdXK8bq0sVS0BZ6mtSyj6SU",
+        authDomain: "mydaily-dcccb.firebaseapp.com",
+        projectId: "mydaily-dcccb",
+        storageBucket: "mydaily-dcccb.firebasestorage.app",
+        messagingSenderId: "664603537896",
+        appId: "1:664603537896:web:9f425a2d3f16581fedf45d",
+        measurementId: "G-4NNV1VQHK8"
+    };
+
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import {
+        getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword,
+        sendPasswordResetEmail, signOut, GoogleAuthProvider, signInWithPopup
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import {
+        initializeFirestore, getFirestore, persistentLocalCache, persistentMultipleTabManager,
+        doc, getDoc, getDocs, collection, query, where, documentId, writeBatch, serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const DEFAULT_SETTINGS = { metaHoras: 8, pularFimDeSemana: true };
+    const SAVE_DELAY_MS = 1500;
+    const PROFILE_MAX_CHARS = 900000; // documento do Firestore tem limite de 1 MB
+    const CHART_COLORS = ['#00f2ff', '#3d5afe', '#8e24aa', '#ff9100', '#00ff41', '#ff4d6d', '#ffd60a', '#4cc9f0', '#b388ff', '#80ffdb'];
+
+    const $ = id => document.getElementById(id);
+
+    // ------------------------------------------------------------ Firebase
+    const configured = !FIREBASE_CONFIG.apiKey.startsWith('COLE');
+    let auth = null, db = null;
+    if (configured) {
+        const app = initializeApp(FIREBASE_CONFIG);
+        auth = getAuth(app);
+        try {
+            db = initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) });
+        } catch (e) {
+            console.warn('Cache offline indisponível, usando modo online.', e);
+            db = getFirestore(app);
+        }
+    }
+
+    // ------------------------------------------------------------ Estado
+    const state = {
+        user: null,
+        selected: todayKey(),
+        reports: {},            // 'YYYY-MM-DD' -> { tasks: [{desc, hour}], comments }
+        loaded: new Set(),      // dias já buscados no Firestore
+        profile: emptyProfile(),
+        dirtyDates: new Set(),
+        profileDirty: false,
+        saving: null,           // Promise do commit em andamento
+        saveTimer: null,
+        retryTimer: null,
+        chartTimer: null,
+        nav: 0,
+        charts: { trend: null, dist: null },
+    };
+
+    function emptyProfile() { return { queue: '', notebook: '', settings: { ...DEFAULT_SETTINGS } }; }
+
+    // ------------------------------------------------------------ Datas (sempre em horário local)
+    function pad(n) { return String(n).padStart(2, '0'); }
+    function toKey(d) { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
+    function fromKey(k) { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d, 12); }
+    function todayKey() { return toKey(new Date()); }
+    function addDays(k, n) { const d = fromKey(k); d.setDate(d.getDate() + n); return toKey(d); }
+    function isWeekend(k) { const w = fromKey(k).getDay(); return w === 0 || w === 6; }
+    function fmtBR(k) { return k.split('-').reverse().join('/'); }
+    function weekdayName(k, style = 'long') { return fromKey(k).toLocaleDateString('pt-BR', { weekday: style }); }
+    const isDateKey = k => /^\d{4}-\d{2}-\d{2}$/.test(k);
+
+    function skipWeekends() { return !!state.profile.settings.pularFimDeSemana; }
+
+    function stepDay(k, dir) {
+        let cur = addDays(k, dir);
+        if (skipWeekends()) while (isWeekend(cur)) cur = addDays(cur, dir);
+        return cur;
+    }
+
+    function visibleDays(k) {
+        const out = [k];
+        let cur = k;
+        while (out.length < 3) {
+            cur = addDays(cur, -1);
+            if (skipWeekends() && isWeekend(cur)) continue;
+            out.unshift(cur);
+        }
+        return out;
+    }
+
+    function dayLabel(k) {
+        const t = todayKey();
+        if (k === t) return 'HOJE';
+        if (k === addDays(t, -1)) return 'ONTEM';
+        if (k === addDays(t, 1)) return 'AMANHÃ';
+        return weekdayName(k).toUpperCase();
+    }
+
+    // ------------------------------------------------------------ Horas
+    function parseHours(v) {
+        const s = String(v ?? '').trim().toLowerCase().replace(',', '.');
+        if (!s) return 0;
+        let m = s.match(/^(\d+)\s*[:h]\s*(\d{1,2})?\s*(m|min)?$/);   // 1:30 · 1h30 · 2h
+        if (m) return Number(m[1]) + (m[2] ? Number(m[2]) / 60 : 0);
+        m = s.match(/^(\d+)\s*(m|min)$/);                             // 45m
+        if (m) return Number(m[1]) / 60;
+        const n = parseFloat(s);                                      // 1.5 · 1,5 · 1.5h
+        return Number.isFinite(n) && n > 0 ? n : 0;
+    }
+    function isHourInvalid(v) {
+        const s = String(v ?? '').trim();
+        return !!s && parseHours(s) === 0 && !/^0+([.,]0*)?h?$/i.test(s);
+    }
+    const round1 = n => Math.round(n * 10) / 10;
+    function fmtH(n) { return round1(n).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + 'h'; }
+    function totalHours(tasks) { return tasks.reduce((a, t) => a + parseHours(t.hour), 0); }
+
+    // ------------------------------------------------------------ Dados
+    function cleanReport(r) {
+        const tasks = Array.isArray(r?.tasks) ? r.tasks : [];
+        return {
+            tasks: tasks
+                .map(t => ({ desc: String(t?.desc ?? '').trim(), hour: String(t?.hour ?? '').trim() }))
+                .filter(t => t.desc || t.hour),
+            comments: String(r?.comments ?? ''),
+        };
+    }
+    const isEmptyReport = r => !r.tasks.length && !r.comments.trim();
+
+    function report(k) { return state.reports[k] ??= { tasks: [], comments: '' }; }
+
+    const reportsCol = () => collection(db, 'users', state.user.uid, 'reports');
+    const userRef = () => doc(db, 'users', state.user.uid);
+
+    async function loadProfile() {
+        const snap = await getDoc(userRef());
+        const d = snap.exists() ? snap.data() : {};
+        state.profile = {
+            queue: String(d.queue ?? ''),
+            notebook: String(d.notebook ?? ''),
+            settings: { ...DEFAULT_SETTINGS, ...(d.settings || {}) },
+        };
+    }
+
+    async function ensureRange(fromK, toK) {
+        const keys = [];
+        for (let k = fromK; k <= toK; k = addDays(k, 1)) keys.push(k);
+        if (keys.every(k => state.loaded.has(k))) return;
+        const snap = await getDocs(query(reportsCol(), where(documentId(), '>=', fromK), where(documentId(), '<=', toK)));
+        snap.forEach(d => { if (!state.dirtyDates.has(d.id)) state.reports[d.id] = cleanReport(d.data()); });
+        keys.forEach(k => state.loaded.add(k));
+    }
+
+    // ------------------------------------------------------------ Salvamento
+    function hasPending() { return state.dirtyDates.size > 0 || state.profileDirty || !!state.saving; }
+
+    function markDirty(k) {
+        state.dirtyDates.add(k);
+        scheduleSave();
+        scheduleChartUpdate();
+    }
+    function markProfileDirty() { state.profileDirty = true; scheduleSave(); }
+
+    function scheduleSave() {
+        setStatus('pending');
+        clearTimeout(state.saveTimer);
+        state.saveTimer = setTimeout(flush, SAVE_DELAY_MS);
+    }
+
+    async function flush() {
+        clearTimeout(state.saveTimer); state.saveTimer = null;
+        clearTimeout(state.retryTimer); state.retryTimer = null;
+        while (state.saving) await state.saving.catch(() => {});
+        if (!state.user || !db) return false;
+        if (!state.dirtyDates.size && !state.profileDirty) { refreshStatus(); return true; }
+
+        const p = state.profile;
+        if (state.profileDirty && p.queue.length + p.notebook.length > PROFILE_MAX_CHARS) {
+            setStatus('error', 'ANOTAÇÕES + CADERNO GRANDES DEMAIS (LIMITE ~900 MIL CARACTERES)');
+            toast('Anotações + caderno passaram do limite do Firestore. Reduza o texto para salvar.', 'danger');
+            return false;
+        }
+
+        const dates = [...state.dirtyDates];
+        const profileDirty = state.profileDirty;
+        state.dirtyDates.clear();
+        state.profileDirty = false;
+
+        const batch = writeBatch(db);
+        for (const k of dates) {
+            const ref = doc(reportsCol(), k);
+            const r = cleanReport(state.reports[k]);
+            if (isEmptyReport(r)) batch.delete(ref);
+            else batch.set(ref, { ...r, updatedAt: serverTimestamp() });
+        }
+        if (profileDirty) {
+            batch.set(userRef(), { queue: p.queue, notebook: p.notebook, settings: p.settings, updatedAt: serverTimestamp() }, { merge: true });
+        }
+
+        state.saving = batch.commit();
+        refreshStatus();
+        try {
+            await state.saving;
+            $('last-sync').textContent = 'ÚLTIMO SYNC: ' + new Date().toLocaleTimeString('pt-BR');
+            return true;
+        } catch (e) {
+            console.error(e);
+            dates.forEach(d => state.dirtyDates.add(d));
+            if (profileDirty) state.profileDirty = true;
+            state.saving = null;
+            setStatus('error', 'ERRO AO SALVAR (' + (e.code || e.message) + ') — NOVA TENTATIVA EM 15s');
+            state.retryTimer = setTimeout(flush, 15000);
+            return false;
+        } finally {
+            state.saving = null;
+            if (!state.retryTimer) refreshStatus();
+        }
+    }
+
+    const STATUS_TEXT = {
+        saved: 'TUDO SALVO NA NUVEM', pending: 'ALTERAÇÕES PENDENTES', saving: 'SALVANDO…',
+        error: 'ERRO AO SALVAR', offline: 'OFFLINE — SALVO NO DISPOSITIVO, SINCRONIZA AO RECONECTAR', loading: 'CARREGANDO…',
+    };
+    function setStatus(kind, text) {
+        $('status-dot').className = 'dot ' + kind;
+        $('status-text').textContent = text ?? STATUS_TEXT[kind];
+    }
+    function refreshStatus() {
+        if (state.saving) return setStatus(navigator.onLine ? 'saving' : 'offline');
+        if (state.dirtyDates.size || state.profileDirty) return setStatus('pending');
+        setStatus(navigator.onLine ? 'saved' : 'offline');
+    }
+
+    // ------------------------------------------------------------ Render dos dias
+    function el(tag, cls, text) {
+        const e = document.createElement(tag);
+        if (cls) e.className = cls;
+        if (text != null) e.textContent = text;
+        return e;
+    }
+
+    function renderDays() {
+        const area = $('render-area');
+        area.replaceChildren();
+        for (const k of visibleDays(state.selected)) {
+            const selected = k === state.selected;
+            const col = el('div', 'col-12 col-lg-4');
+            const card = el('div', 'glass-card day-card h-100 p-4' + (selected ? ' selected' : ''));
+            card.dataset.date = k;
+
+            const head = el('div', 'd-flex justify-content-between align-items-start mb-3 gap-2');
+            const title = el('div');
+            title.append(
+                el('h6', 'fw-bold mb-0' + (selected ? ' text-primary' : ''), dayLabel(k)),
+                el('small', 'text-secondary', `${weekdayName(k, 'short')} · ${fmtBR(k)}`)
+            );
+            const badge = el('span', 'hours-badge');
+            badge.dataset.role = 'total';
+            head.append(title, badge);
+
+            const list = el('div');
+            const addBtn = el('button', 'btn btn-outline-secondary btn-sm w-100 mt-1 mb-3 btn-dashed', '+ TASK');
+            addBtn.type = 'button';
+            addBtn.addEventListener('click', () => addTaskRow(list, k).querySelector('.t-desc').focus());
+
+            const comm = el('textarea', 'form-control');
+            comm.rows = 3;
+            comm.placeholder = 'Comentários / impedimentos do dia';
+            comm.value = report(k).comments;
+            comm.addEventListener('input', () => { report(k).comments = comm.value; markDirty(k); });
+
+            card.append(head, list, addBtn, comm);
+            col.append(card);
+            area.append(col);
+
+            report(k).tasks.forEach(t => addTaskRow(list, k, t));
+            updateBadge(card, k);
+        }
+    }
+
+    function addTaskRow(list, k, t = { desc: '', hour: '' }) {
+        const row = el('div', 'task-row');
+        const desc = el('input', 'form-control form-control-sm t-desc');
+        desc.value = t.desc;
+        desc.placeholder = 'Descrição da task';
+        const hour = el('input', 'form-control form-control-sm t-hour');
+        hour.value = t.hour;
+        hour.placeholder = 'horas';
+        hour.inputMode = 'decimal';
+        hour.title = 'Horas: 1,5 · 1:30 · 1h30 · 45m';
+        const del = el('button', 'btn btn-link text-danger p-0');
+        del.type = 'button';
+        del.title = 'Remover task';
+        del.innerHTML = '<i class="bi bi-trash3-fill"></i>';
+
+        const sync = () => syncTasks(list, k);
+        desc.addEventListener('input', sync);
+        hour.addEventListener('input', sync);
+        del.addEventListener('click', () => { row.remove(); sync(); });
+        desc.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); hour.focus(); } });
+        hour.addEventListener('keydown', e => {
+            if (e.key !== 'Enter') return;
+            e.preventDefault();
+            const next = row.nextElementSibling;
+            (next ? next : addTaskRow(list, k)).querySelector('.t-desc').focus();
+        });
+
+        row.append(desc, hour, del);
+        list.append(row);
+        hour.classList.toggle('is-invalid', isHourInvalid(hour.value));
+        return row;
+    }
+
+    function syncTasks(list, k) {
+        report(k).tasks = [...list.querySelectorAll('.task-row')].map(r => {
+            const hourInput = r.querySelector('.t-hour');
+            hourInput.classList.toggle('is-invalid', isHourInvalid(hourInput.value));
+            return { desc: r.querySelector('.t-desc').value, hour: hourInput.value };
+        });
+        updateBadge(list.closest('.day-card'), k);
+        markDirty(k);
+    }
+
+    function updateBadge(card, k) {
+        const tasks = cleanReport(report(k)).tasks;
+        card.querySelector('[data-role="total"]').textContent = `${tasks.length} task${tasks.length === 1 ? '' : 's'} · ${fmtH(totalHours(tasks))}`;
+    }
+
+    function fillProfileFields() {
+        $('queue-field').value = state.profile.queue;
+        $('notebook-field').value = state.profile.notebook;
+    }
+
+    // ------------------------------------------------------------ Navegação
+    async function goToDate(k) {
+        if (!k || !isDateKey(k)) return;
+        const token = ++state.nav;
+        state.selected = k;
+        $('date-picker').value = k;
+        setStatus('loading');
+        try {
+            const days = visibleDays(k);
+            const from = [addDays(k, -6), days[0]].sort()[0];
+            await ensureRange(from, k);
+        } catch (e) {
+            console.error(e);
+            toast('Não consegui carregar os dias: ' + (e.code || e.message), 'danger');
+        }
+        if (token !== state.nav) return;
+        renderDays();
+        if (chartsVisible()) updateCharts();
+        refreshStatus();
+    }
+
+    // ------------------------------------------------------------ Gráficos
+    function chartsVisible() { return $('tab-charts').classList.contains('active'); }
+    function scheduleChartUpdate() {
+        if (!chartsVisible()) return;
+        clearTimeout(state.chartTimer);
+        state.chartTimer = setTimeout(updateCharts, 400);
+    }
+
+    async function updateCharts() {
+        const sel = state.selected;
+        try { await ensureRange(addDays(sel, -6), sel); } catch (e) { console.error(e); }
+
+        const labels = [], hours = [], counts = [];
+        for (let i = 6; i >= 0; i--) {
+            const k = addDays(sel, -i);
+            const r = cleanReport(state.reports[k]);
+            labels.push(`${weekdayName(k, 'short').replace('.', '')} ${fmtBR(k).slice(0, 5)}`);
+            hours.push(round1(totalHours(r.tasks)));
+            counts.push(r.tasks.length);
+        }
+        const cur = cleanReport(state.reports[sel]);
+        const tot = totalHours(cur.tasks);
+        const meta = Number(state.profile.settings.metaHoras) || DEFAULT_SETTINGS.metaHoras;
+        const worked = hours.filter(h => h > 0);
+
+        $('kpi-tasks').textContent = cur.tasks.length;
+        $('kpi-hours').textContent = fmtH(tot);
+        $('kpi-efficiency').textContent = Math.round((tot / meta) * 100) + '%';
+        $('kpi-efficiency-label').textContent = `DA META (${fmtH(meta)})`;
+        $('kpi-avg').textContent = fmtH(worked.length ? worked.reduce((a, b) => a + b, 0) / worked.length : 0);
+
+        Chart.defaults.color = '#8a8f98';
+        Chart.defaults.borderColor = 'rgba(255,255,255,0.06)';
+        Chart.defaults.font.family = 'Inter, sans-serif';
+
+        const metaLine = labels.map(() => meta);
+        if (!state.charts.trend) {
+            state.charts.trend = new Chart($('mainTrendChart'), {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [
+                        { label: 'Horas', data: hours, backgroundColor: '#3d5afe', borderRadius: 8, order: 2 },
+                        { label: 'Meta', data: metaLine, type: 'line', borderColor: 'rgba(0,242,255,.6)', borderDash: [6, 6], pointRadius: 0, borderWidth: 2, order: 1 },
+                    ],
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true, ticks: { callback: v => v + 'h' } } },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { callbacks: {
+                            label: c => c.dataset.label === 'Meta' ? `Meta: ${fmtH(c.raw)}` : `Horas: ${fmtH(c.raw)}`,
+                            afterLabel: c => c.dataset.label === 'Horas' ? `Tasks: ${state.charts.trendCounts[c.dataIndex]}` : '',
+                        } },
+                    },
+                },
+            });
+        } else {
+            const ch = state.charts.trend;
+            ch.data.labels = labels;
+            ch.data.datasets[0].data = hours;
+            ch.data.datasets[1].data = metaLine;
+            ch.update();
+        }
+        state.charts.trendCounts = counts;
+
+        const withHours = cur.tasks.map(t => ({ label: t.desc || '(sem descrição)', h: round1(parseHours(t.hour)) })).filter(t => t.h > 0);
+        $('dist-empty').classList.toggle('d-none', withHours.length > 0);
+        const distLabels = withHours.map(t => t.label.length > 28 ? t.label.slice(0, 27) + '…' : t.label);
+        const distData = withHours.map(t => t.h);
+        if (!state.charts.dist) {
+            state.charts.dist = new Chart($('taskDistributionChart'), {
+                type: 'doughnut',
+                data: { labels: distLabels, datasets: [{ data: distData, backgroundColor: CHART_COLORS, borderWidth: 0 }] },
+                options: {
+                    responsive: true, maintainAspectRatio: false, cutout: '62%',
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 10, padding: 10 } },
+                        tooltip: { callbacks: { label: c => ` ${fmtH(c.raw)}` } },
+                    },
+                },
+            });
+        } else {
+            const ch = state.charts.dist;
+            ch.data.labels = distLabels;
+            ch.data.datasets[0].data = distData;
+            ch.update();
+        }
+    }
+
+    function destroyCharts() {
+        state.charts.trend?.destroy();
+        state.charts.dist?.destroy();
+        state.charts = { trend: null, dist: null };
+    }
+
+    // ------------------------------------------------------------ Relatório
+    function taskLines(r) {
+        if (!r.tasks.length) return ['Nenhuma tarefa registrada.'];
+        return r.tasks.map(t => {
+            const h = parseHours(t.hour);
+            return `- ${t.desc || '(sem descrição)'}${h > 0 ? ` (${fmtH(h)})` : ''}`;
+        });
+    }
+
+    function buildReport() {
+        const sel = state.selected;
+        const r = cleanReport(state.reports[sel]);
+        const lines = [`🚀 MYDAILY - ${fmtBR(sel)} (${weekdayName(sel)})`, '-------------------------------------------', ''];
+
+        if ($('rep-prev').checked) {
+            const prev = visibleDays(sel)[1];
+            const p = cleanReport(state.reports[prev]);
+            lines.push(`⏮️ [DIA ANTERIOR - ${fmtBR(prev)}] — ${fmtH(totalHours(p.tasks))}`, ...taskLines(p));
+            if (p.comments.trim()) lines.push('', p.comments.trim());
+            lines.push('');
+        }
+
+        lines.push(`✅ [TASKS] — total ${fmtH(totalHours(r.tasks))}`, ...taskLines(r));
+        lines.push('', '📝 [NOTAS]', r.comments.trim() || 'Nenhuma nota.');
+        if ($('rep-global').checked) lines.push('', '⏳ [ANOTAÇÕES GLOBAIS]', state.profile.queue.trim() || 'Vazio.');
+        return lines.join('\n');
+    }
+
+    function openReport() {
+        flush();
+        $('base-report-text').value = buildReport();
+        bootstrap.Modal.getOrCreateInstance($('reportModal')).show();
+    }
+
+    async function copyReport() {
+        const ta = $('base-report-text');
+        try {
+            await navigator.clipboard.writeText(ta.value);
+        } catch {
+            ta.select();
+            document.execCommand('copy');
+        }
+        const btn = $('btn-copy');
+        btn.textContent = 'COPIADO!';
+        btn.classList.replace('btn-outline-info', 'btn-success');
+        setTimeout(() => { btn.textContent = 'COPIAR PARA ÁREA DE TRANSFERÊNCIA'; btn.classList.replace('btn-success', 'btn-outline-info'); }, 2000);
+    }
+
+    // ------------------------------------------------------------ Backup
+    function downloadText(name, text) {
+        const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+        const a = Object.assign(document.createElement('a'), { href: url, download: name });
+        document.body.append(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    async function exportBackup() {
+        try {
+            await flush();
+            const snap = await getDocs(reportsCol());
+            const reports = {};
+            snap.forEach(d => { reports[d.id] = cleanReport(d.data()); });
+            const p = state.profile;
+            const data = { app: 'mydaily', version: 2, exportedAt: new Date().toISOString(), reports, queue: p.queue, notebook: p.notebook, settings: p.settings };
+            downloadText(`mydaily-backup-${todayKey()}.json`, JSON.stringify(data, null, 2));
+            toast(`Backup exportado (${snap.size} dias).`, 'success');
+        } catch (e) {
+            console.error(e);
+            toast('Falha ao exportar: ' + (e.code || e.message), 'danger');
+        }
+    }
+
+    function appendText(cur, inc) {
+        inc = String(inc ?? '').trim();
+        if (!inc || cur.includes(inc)) return cur;
+        return cur.trim() ? cur.trimEnd() + '\n\n' + inc : inc;
+    }
+
+    async function importData(data, origem) {
+        if (!data || typeof data !== 'object' || typeof data.reports !== 'object' || data.reports === null) {
+            throw new Error('O arquivo não parece um backup do MYDAILY.');
+        }
+        const entries = Object.entries(data.reports)
+            .filter(([k]) => isDateKey(k))
+            .map(([k, v]) => [k, cleanReport(v)])
+            .filter(([, r]) => !isEmptyReport(r));
+
+        const ok = confirm(
+            `Importar ${entries.length} dia(s) de ${origem}?\n\n` +
+            `• Dias que já existem na nuvem serão SUBSTITUÍDOS pelos do arquivo.\n` +
+            `• Anotações e caderno do arquivo serão ADICIONADOS ao final dos atuais.`
+        );
+        if (!ok) return false;
+
+        await flush();
+        setStatus('saving', 'IMPORTANDO…');
+        for (let i = 0; i < entries.length; i += 400) {
+            const batch = writeBatch(db);
+            entries.slice(i, i + 400).forEach(([k, r]) => batch.set(doc(reportsCol(), k), { ...r, updatedAt: serverTimestamp() }));
+            await batch.commit();
+        }
+        entries.forEach(([k, r]) => { state.reports[k] = r; state.loaded.add(k); });
+
+        const p = state.profile;
+        p.queue = appendText(p.queue, data.queue);
+        p.notebook = appendText(p.notebook, data.notebook);
+        if (data.settings && typeof data.settings === 'object') {
+            const meta = Number(data.settings.metaHoras);
+            if (meta > 0 && meta <= 24) p.settings.metaHoras = meta;
+            if (typeof data.settings.pularFimDeSemana === 'boolean') p.settings.pularFimDeSemana = data.settings.pularFimDeSemana;
+        }
+        state.profileDirty = true;
+        await flush();
+
+        fillProfileFields();
+        renderDays();
+        if (chartsVisible()) updateCharts();
+        toast(`${entries.length} dia(s) importado(s).`, 'success');
+        return true;
+    }
+
+    async function importFromFile(file) {
+        try {
+            const data = JSON.parse(await file.text());
+            await importData(data, `"${file.name}"`);
+        } catch (e) {
+            console.error(e);
+            toast('Falha ao importar: ' + (e instanceof SyntaxError ? 'arquivo não é um JSON válido.' : (e.code || e.message)), 'danger');
+            refreshStatus();
+        }
+    }
+
+    // Migração da versão antiga (localStorage 'mydaily_core' no mesmo navegador)
+    function storageGet(key) { try { return localStorage.getItem(key); } catch { return null; } }
+    function storageSet(key, v) { try { localStorage.setItem(key, v); } catch { /* sem storage */ } }
+
+    function checkLegacy() {
+        $('legacy-banner').classList.add('d-none');
+        const doneKey = 'mydaily_legacy_done_' + state.user.uid;
+        if (storageGet(doneKey)) return;
+        let data;
+        try { data = JSON.parse(storageGet('mydaily_core')); } catch { return; }
+        if (!data?.reports) return;
+        const n = Object.values(data.reports).filter(r => !isEmptyReport(cleanReport(r))).length;
+        if (!n && !data.queue && !data.notebook) return;
+
+        $('legacy-text').textContent = `Encontrei ${n} dia(s) salvos pela versão antiga neste navegador. Quer importar para a sua conta?`;
+        $('legacy-banner').classList.remove('d-none');
+        $('legacy-import').onclick = async () => {
+            try {
+                if (await importData(data, 'versão antiga')) {
+                    storageSet(doneKey, '1');
+                    $('legacy-banner').classList.add('d-none');
+                }
+            } catch (e) { toast('Falha ao importar: ' + (e.code || e.message), 'danger'); refreshStatus(); }
+        };
+        $('legacy-dismiss').onclick = () => { storageSet(doneKey, '1'); $('legacy-banner').classList.add('d-none'); };
+    }
+
+    // ------------------------------------------------------------ Toast
+    function toast(msg, type = 'info') {
+        const t = el('div', 'mini-toast ' + type, msg);
+        $('toast-wrap').append(t);
+        setTimeout(() => t.remove(), 4000);
+    }
+
+    // ------------------------------------------------------------ Autenticação
+    const AUTH_ERRORS = {
+        'auth/invalid-credential': 'E-mail ou senha incorretos.',
+        'auth/invalid-login-credentials': 'E-mail ou senha incorretos.',
+        'auth/wrong-password': 'E-mail ou senha incorretos.',
+        'auth/user-not-found': 'E-mail ou senha incorretos.',
+        'auth/invalid-email': 'E-mail inválido.',
+        'auth/missing-password': 'Informe a senha.',
+        'auth/email-already-in-use': 'Já existe uma conta com esse e-mail.',
+        'auth/weak-password': 'A senha precisa ter pelo menos 6 caracteres.',
+        'auth/too-many-requests': 'Muitas tentativas. Aguarde alguns minutos.',
+        'auth/network-request-failed': 'Sem conexão com a internet.',
+        'auth/popup-closed-by-user': 'Janela do Google fechada antes de concluir.',
+        'auth/popup-blocked': 'O navegador bloqueou a janela do Google. Libere pop-ups para este site.',
+        'auth/operation-not-allowed': 'Esse método de login não está habilitado no Firebase (Authentication > Sign-in method).',
+        'auth/unauthorized-domain': 'Domínio não autorizado no Firebase (Authentication > Settings > Authorized domains).',
+        'auth/operation-not-supported-in-this-environment': 'Login com Google não funciona abrindo o arquivo direto. Use o site publicado ou http://localhost.',
+    };
+    const authError = e => AUTH_ERRORS[e?.code] || ('Erro: ' + (e?.code || e?.message || e));
+
+    let authMode = 'login';
+    function setAuthMode(mode) {
+        authMode = mode;
+        const signup = mode === 'signup';
+        $('confirm-wrap').classList.toggle('d-none', !signup);
+        $('auth-submit').textContent = signup ? 'CRIAR CONTA' : 'ENTRAR';
+        $('auth-toggle').textContent = signup ? 'Já tenho conta' : 'Criar conta';
+        $('auth-subtitle').textContent = signup ? 'Crie sua conta' : 'Entre para sincronizar sua daily';
+        $('auth-password').autocomplete = signup ? 'new-password' : 'current-password';
+        showAuthMsg();
+    }
+
+    function showAuthMsg(text, type = 'danger') {
+        const m = $('auth-msg');
+        m.classList.toggle('d-none', !text);
+        m.className = `small mb-3 text-${type}` + (text ? '' : ' d-none');
+        m.textContent = text || '';
+    }
+
+    function setAuthBusy(busy) {
+        ['auth-submit', 'auth-google', 'auth-toggle', 'auth-forgot'].forEach(id => { $(id).disabled = busy; });
+    }
+
+    async function onAuthSubmit(e) {
+        e.preventDefault();
+        const email = $('auth-email').value.trim();
+        const pass = $('auth-password').value;
+        if (!email || !pass) return showAuthMsg('Preencha e-mail e senha.');
+        if (authMode === 'signup') {
+            if (pass.length < 6) return showAuthMsg('A senha precisa ter pelo menos 6 caracteres.');
+            if (pass !== $('auth-password2').value) return showAuthMsg('As senhas não conferem.');
+        }
+        setAuthBusy(true);
+        showAuthMsg();
+        try {
+            if (authMode === 'signup') await createUserWithEmailAndPassword(auth, email, pass);
+            else await signInWithEmailAndPassword(auth, email, pass);
+        } catch (err) {
+            showAuthMsg(authError(err));
+        } finally {
+            setAuthBusy(false);
+        }
+    }
+
+    async function onForgot() {
+        const email = $('auth-email').value.trim();
+        if (!email) return showAuthMsg('Digite seu e-mail no campo acima e clique de novo em "Esqueci a senha".', 'warning');
+        setAuthBusy(true);
+        try {
+            await sendPasswordResetEmail(auth, email);
+            showAuthMsg('Se existir uma conta com esse e-mail, você vai receber um link para redefinir a senha.', 'success');
+        } catch (err) {
+            showAuthMsg(authError(err));
+        } finally {
+            setAuthBusy(false);
+        }
+    }
+
+    async function onGoogle() {
+        setAuthBusy(true);
+        showAuthMsg();
+        try {
+            await signInWithPopup(auth, new GoogleAuthProvider());
+        } catch (err) {
+            showAuthMsg(authError(err));
+        } finally {
+            setAuthBusy(false);
+        }
+    }
+
+    async function onLogout() {
+        if (hasPending()) {
+            const done = await Promise.race([flush(), new Promise(r => setTimeout(() => r(false), 5000))]);
+            if (!done && !confirm('Algumas alterações ainda não foram sincronizadas com a nuvem. Sair mesmo assim? (Elas podem ser perdidas.)')) return;
+        }
+        await signOut(auth);
+    }
+
+    function resetState() {
+        clearTimeout(state.saveTimer);
+        clearTimeout(state.retryTimer);
+        clearTimeout(state.chartTimer);
+        destroyCharts();
+        Object.assign(state, {
+            user: null, reports: {}, loaded: new Set(), profile: emptyProfile(),
+            dirtyDates: new Set(), profileDirty: false, saving: null, saveTimer: null, retryTimer: null, chartTimer: null,
+        });
+        $('render-area').replaceChildren();
+        fillProfileFields();
+        $('last-sync').textContent = 'ÚLTIMO SYNC: --:--:--';
+    }
+
+    function showScreen(which) {
+        $('boot-screen').classList.toggle('d-none', which !== 'boot');
+        $('auth-screen').classList.toggle('d-none', which !== 'auth');
+        $('app').classList.toggle('d-none', which !== 'app');
+    }
+
+    async function onLogin(user) {
+        state.user = user;
+        const name = user.displayName || user.email || 'Usuário';
+        $('user-name').textContent = name.split(' ')[0];
+        $('user-email').textContent = user.email || name;
+        $('status-user').textContent = user.email || name;
+        state.selected = todayKey();
+        showScreen('app');
+        setStatus('loading');
+        try {
+            await loadProfile();
+        } catch (e) {
+            console.error(e);
+            toast('Não consegui carregar seu perfil: ' + (e.code || e.message), 'danger');
+        }
+        fillProfileFields();
+        await goToDate(state.selected);
+        checkLegacy();
+    }
+
+    // ------------------------------------------------------------ Eventos
+    function bindEvents() {
+        $('auth-form').addEventListener('submit', onAuthSubmit);
+        $('auth-toggle').addEventListener('click', () => setAuthMode(authMode === 'login' ? 'signup' : 'login'));
+        $('auth-forgot').addEventListener('click', onForgot);
+        $('auth-google').addEventListener('click', onGoogle);
+        if (!location.protocol.startsWith('http')) $('google-wrap').classList.add('d-none');
+
+        $('date-picker').addEventListener('change', e => goToDate(e.target.value));
+        $('btn-prev').addEventListener('click', () => goToDate(stepDay(state.selected, -1)));
+        $('btn-next').addEventListener('click', () => goToDate(stepDay(state.selected, 1)));
+        $('btn-today').addEventListener('click', () => goToDate(todayKey()));
+
+        $('btn-save').addEventListener('click', async () => {
+            if (!navigator.onLine) { flush(); return toast('Sem internet: salvo no dispositivo, sincroniza quando a conexão voltar.', 'warning'); }
+            if (await flush()) toast('Salvo na nuvem.', 'success');
+        });
+        $('btn-report').addEventListener('click', openReport);
+        $('rep-prev').addEventListener('change', e => { storageSet('mydaily_rep_prev', e.target.checked ? '1' : '0'); $('base-report-text').value = buildReport(); });
+        $('rep-global').addEventListener('change', e => { storageSet('mydaily_rep_global', e.target.checked ? '1' : '0'); $('base-report-text').value = buildReport(); });
+        $('rep-prev').checked = storageGet('mydaily_rep_prev') === '1';
+        $('rep-global').checked = storageGet('mydaily_rep_global') !== '0';
+        $('btn-copy').addEventListener('click', copyReport);
+
+        $('queue-field').addEventListener('input', e => { state.profile.queue = e.target.value; markProfileDirty(); });
+        $('notebook-field').addEventListener('input', e => { state.profile.notebook = e.target.value; markProfileDirty(); });
+
+        $('tab-charts-btn').addEventListener('shown.bs.tab', updateCharts);
+
+        $('btn-settings').addEventListener('click', () => {
+            $('set-meta').value = state.profile.settings.metaHoras;
+            $('set-skip').checked = !!state.profile.settings.pularFimDeSemana;
+            bootstrap.Modal.getOrCreateInstance($('settingsModal')).show();
+        });
+        $('settings-form').addEventListener('submit', e => {
+            e.preventDefault();
+            const meta = Number($('set-meta').value);
+            if (!(meta > 0 && meta <= 24)) return toast('Meta deve ser entre 0,5 e 24 horas.', 'warning');
+            state.profile.settings = { ...state.profile.settings, metaHoras: meta, pularFimDeSemana: $('set-skip').checked };
+            markProfileDirty();
+            bootstrap.Modal.getOrCreateInstance($('settingsModal')).hide();
+            goToDate(state.selected);
+        });
+
+        $('btn-export').addEventListener('click', exportBackup);
+        $('btn-import').addEventListener('click', () => $('import-file').click());
+        $('import-file').addEventListener('change', e => {
+            const f = e.target.files[0];
+            e.target.value = '';
+            if (f) importFromFile(f);
+        });
+        $('btn-logout').addEventListener('click', onLogout);
+
+        document.addEventListener('keydown', e => {
+            if (!state.user) return;
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+                e.preventDefault();
+                $('btn-save').click();
+            } else if (e.altKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+                e.preventDefault();
+                goToDate(stepDay(state.selected, e.key === 'ArrowLeft' ? -1 : 1));
+            }
+        });
+
+        window.addEventListener('beforeunload', e => {
+            if (!state.user || !hasPending()) return;
+            flush();
+            e.preventDefault();
+            e.returnValue = '';
+        });
+        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && state.user) flush(); });
+        window.addEventListener('online', () => { if (state.user) { refreshStatus(); if (state.dirtyDates.size || state.profileDirty) flush(); } });
+        window.addEventListener('offline', () => { if (state.user) refreshStatus(); });
+    }
+
+    // ------------------------------------------------------------ Início
+    bindEvents();
+    if (!configured) {
+        showScreen('auth');
+        $('config-warning').classList.remove('d-none');
+        setAuthBusy(true);
+        $('auth-email').disabled = $('auth-password').disabled = true;
+    } else {
+        onAuthStateChanged(auth, user => {
+            if (user) {
+                onLogin(user);
+            } else {
+                resetState();
+                setAuthMode('login');
+                showScreen('auth');
+            }
+        });
+    }
+</script>
+</body>
+</html>

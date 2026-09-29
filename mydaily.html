@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="pt-br" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MYDAILY</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='titanGrad' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' stop-color='%233d5afe'/><stop offset='100%' stop-color='%2300f2ff'/></linearGradient></defs><rect width='100' height='100' rx='22' fill='url(%23titanGrad)'/><text x='50%' y='50%' dominant-baseline='central' text-anchor='middle' font-family='sans-serif' font-weight='900' font-size='75' fill='white'>M</text></svg>">
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg: #030303;
+            --glass: rgba(12, 12, 15, 0.95);
+            --border: rgba(255, 255, 255, 0.08);
+            --accent: #3d5afe;
+            --accent-glow: rgba(61, 90, 254, 0.4);
+            --terminal: #00f2ff;
+            --terminal-glow: rgba(0, 242, 255, 0.3);
+            --queue-color: #ff9100;
+            --save-green: #00ff41;
+        }
+
+        body {
+            background-color: var(--bg);
+            background-image: linear-gradient(rgba(61, 90, 254, 0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(61, 90, 254, 0.02) 1px, transparent 1px);
+            background-size: 50px 50px;
+            color: #e0e0e0; font-family: 'Inter', sans-serif;
+            min-height: 100vh; overflow-x: hidden;
+        }
+
+        #init-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; z-index: 9999; display: flex; align-items: center; justify-content: center;
+            transition: opacity 0.6s ease;
+        }
+
+        .btn-link-step { 
+            background: rgba(255,255,255,0.02); border: 1px solid var(--border); color: #fff;
+            padding: 20px; border-radius: 18px; width: 100%; text-align: left;
+            display: flex; align-items: center; gap: 15px; transition: 0.3s; cursor: pointer;
+        }
+        .btn-link-step:hover:not(.active) { background: rgba(61, 90, 254, 0.1); border-color: var(--accent); transform: translateY(-5px); }
+        .btn-link-step.active { border-color: var(--save-green) !important; background: rgba(0, 255, 65, 0.08) !important; }
+
+        .btn-cyber-primary { background: var(--accent); color: white; border: none; padding: 12px 30px; border-radius: 14px; font-weight: 700; box-shadow: 0 0 20px var(--accent-glow); transition: 0.3s; }
+        
+        .glass-card { background: var(--glass); backdrop-filter: blur(20px); border: 1px solid var(--border); border-radius: 24px; box-shadow: 0 15px 35px rgba(0,0,0,0.6); }
+        .form-control { background: rgba(0, 0, 0, 0.6); border: 1px solid var(--border); color: var(--terminal); font-family: 'Fira Code', monospace; border-radius: 12px; }
+        
+        .queue-area { 
+            background: repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(255, 145, 0, 0.03) 40px) !important; 
+            border-left: 10px solid var(--queue-color) !important; 
+            height: 780px !important; min-height: 780px !important;
+            font-size: 1.3rem; line-height: 2.2; padding: 40px !important; 
+        }
+
+        .chart-container { position: relative; height: 400px; width: 100%; }
+        .kpi-value { font-size: 2.5rem; font-weight: 800; color: var(--terminal); }
+        .status-bar { position: fixed; bottom: 0; width: 100%; background: #000; padding: 8px 30px; border-top: 1px solid var(--border); z-index: 1000; display: flex; justify-content: space-between; font-size: 0.75rem; }
+        .nav-pills .nav-link.active { background: var(--accent) !important; box-shadow: 0 5px 15px var(--accent-glow); }
+    </style>
+</head>
+<body>
+
+<div id="init-overlay">
+    <div class="glass-card p-5 text-center" style="max-width: 450px; width: 90%;">
+        <h1 class="fw-bold mb-4" style="letter-spacing: -2px; font-size: 2.8rem;">MY<span class="text-primary">DAILY</span></h1>
+        <div class="d-flex flex-column gap-3 mb-4 text-start">
+            <button id="btn-step-main" class="btn-link-step" onclick="handleFileLink('main')">
+                <i class="bi bi-hdd-network fs-3 text-primary"></i>
+                <div><div class="fw-bold">ARQUIVO BASE</div><small class="opacity-50" id="label-main">Vincular arquivo .json</small></div>
+            </button>
+            <button id="btn-step-bkp" class="btn-link-step" onclick="handleFileLink('bkp')">
+                <i class="bi bi-shield-check fs-3 text-warning"></i>
+                <div><div class="fw-bold">BKP_STORAGE</div><small class="opacity-50" id="label-bkp">Vincular arquivo .json</small></div>
+            </button>
+        </div>
+        <button id="btn-unlock-terminal" class="btn btn-cyber-primary w-100 py-3" disabled onclick="unlockSystem()">ABRIR</button>
+    </div>
+</div>
+
+<div class="container-fluid px-lg-5 py-5 mb-5">
+    <header class="d-flex flex-column flex-lg-row justify-content-between align-items-center mb-5 gap-4">
+        <div><h1 class="h2 fw-bold mb-0" style="letter-spacing: -2px; font-size: 2.8rem;">MY<span class="text-primary">DAILY</span></h1></div>
+        <div class="d-flex align-items-center gap-3">
+            <div class="glass-card px-4 py-4 d-flex align-items-center" style="border-radius: 150px;">
+                <input type="date" id="report-date-picker" onchange="changeSystemDate(this.value)" style="background:transparent; border:none; color:#fff; outline:none; font-weight:bold; font-size: 1.1rem;">
+            </div>
+            <button class="btn btn-outline-info btn-lg px-4" onclick="handleReportRequest()" style="border-radius: 15px; font-weight:700; height: 75px;">RELATÓRIO</button>
+            <button id="main-save-btn" class="btn btn-cyber-primary px-4" onclick="saveData(true)" style="height: 75px;">SALVAR</button>
+        </div>
+    </header>
+
+    <ul class="nav nav-pills mb-5 gap-2" id="mainTabs">
+        <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-logs">DIAS</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-charts" onclick="updateCharts()">ESTATÍSTICAS</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-note">CADERNO</button></li>
+    </ul>
+
+    <div class="tab-content">
+        <div class="tab-pane fade show active" id="tab-logs">
+            <div class="row g-4 mb-5" id="render-area"></div>
+            <div class="row">
+                <div class="col-12">
+                    <div class="glass-card p-5 border-warning border-opacity-10 text-warning">
+                        <h3 class="h3 mb-4 fw-bold"><i class="bi bi-journal-code me-3"></i>ANOTAÇÕES</h3>
+                        <textarea id="queue-field" class="form-control queue-area" placeholder="Escreva suas anotações aqui..."></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="tab-charts">
+            <div class="row g-4 mb-4 text-center">
+                <div class="col-md-4"><div class="glass-card p-4"><div id="kpi-tasks" class="kpi-value">0</div><div class="text-secondary small">TASKS HOJE</div></div></div>
+                <div class="col-md-4"><div class="glass-card p-4"><div id="kpi-hours" class="kpi-value">0.0</div><div class="text-secondary small">HORAS HOJE</div></div></div>
+                <div class="col-md-4"><div class="glass-card p-4"><div id="kpi-efficiency" class="kpi-value">0%</div><div class="text-secondary small">AVANÇO</div></div></div>
+            </div>
+            <div class="row g-4">
+                <div class="col-lg-8"><div class="glass-card p-4"><h5 class="fw-bold mb-4" style="color:var(--accent)">HISTÓRICO 7 DIAS</h5><div class="chart-container"><canvas id="mainTrendChart"></canvas></div></div></div>
+                <div class="col-lg-4"><div class="glass-card p-4"><h5 class="fw-bold mb-4" style="color:var(--terminal)">DISTRIBUIÇÃO</h5><div class="chart-container"><canvas id="taskDistributionChart"></canvas></div></div></div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="tab-note">
+            <div class="glass-card p-4" style="height: 80vh;">
+                <textarea id="notebook-field" class="form-control h-100" style="padding:40px; border-left: 8px solid var(--accent);" placeholder="Caderno..."></textarea>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="reportModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content glass-card" style="border: 1px solid var(--terminal);">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" style="color:var(--terminal);">GERAR_RELATÓRIO_JSON</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <textarea id="base-report-text" class="form-control" rows="16" readonly style="color: #fff; font-size: 0.9rem; line-height: 1.6; border-color: rgba(0,242,255,0.1);"></textarea>
+            </div>
+            <div class="modal-footer border-0 pt-0 justify-content-center">
+                <button type="button" class="btn btn-outline-info w-100 py-3 fw-bold" onclick="copyReport()" style="border-radius:12px">COPIAR PARA ÁREA DE TRANSFERÊNCIA</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="status-bar">
+    <div><span style="height: 8px; width: 8px; background-color: var(--save-green); border-radius: 50%; display: inline-block; margin-right: 10px;"></span> <span class="text-secondary">SYSTEM_READY</span></div>
+    <div class="text-secondary" id="next-save">PRÓXIMO AUTO: 05:00</div>
+    <div class="text-secondary" id="last-sync">ÚLTIMO SYNC: --:--:--</div>
+</div>
+
+<script>
+    let mainHandle = null, bkpHandle = null, trendChart = null, distChart = null;
+    let autoSaveSeconds = 300;
+    let currentSelectedDate = new Date().toISOString().split('T')[0];
+    let db = JSON.parse(localStorage.getItem('mydaily_core')) || { reports: {}, notebook: "", queue: "" };
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const tabs = document.querySelectorAll('button[data-bs-toggle="tab"]');
+        tabs.forEach(tab => tab.addEventListener('show.bs.tab', () => saveData(false)));
+    });
+
+    async function handleFileLink(type) {
+        try {
+            const [handle] = await window.showOpenFilePicker({ mode: 'readwrite' });
+            if (type === 'main') {
+                mainHandle = handle; const file = await handle.getFile(); const content = await file.text();
+                if(content) db = JSON.parse(content);
+                document.getElementById('btn-step-main').classList.add('active');
+                document.getElementById('label-main').innerText = "VINCULADO: " + file.name;
+            } else {
+                bkpHandle = handle; const file = await handle.getFile();
+                document.getElementById('btn-step-bkp').classList.add('active');
+                document.getElementById('label-bkp').innerText = "VINCULADO: " + file.name;
+            }
+            if (mainHandle && bkpHandle) document.getElementById('btn-unlock-terminal').disabled = false;
+        } catch (e) { console.warn("Link cancelado."); }
+    }
+
+    function unlockSystem() {
+        document.getElementById('init-overlay').style.opacity = '0';
+        setTimeout(() => {
+            document.getElementById('init-overlay').style.display = 'none';
+            document.getElementById('report-date-picker').value = currentSelectedDate;
+            renderAll(); updateCharts();
+        }, 600);
+    }
+
+    async function changeSystemDate(newDate) { await saveData(false); currentSelectedDate = newDate; renderAll(); updateCharts(); }
+    function getTripleDates(baseDateStr) { const base = new Date(baseDateStr + 'T12:00:00'); return [new Date(new Date(base).setDate(base.getDate() - 2)), new Date(new Date(base).setDate(base.getDate() - 1)), base]; }
+
+    function createTaskRow(dateStr, t = "", h = "") {
+        const container = document.getElementById(`tasks-${dateStr}`); if(!container) return;
+        const div = document.createElement('div');
+        div.className = 'mb-2 d-flex gap-2 align-items-center';
+        div.innerHTML = `<input type="text" class="form-control form-control-sm t-desc" value="${t}"><input type="text" class="form-control form-control-sm t-hour text-center" style="width: 70px;" value="${h}"><button class="btn btn-link text-danger p-0" onclick="this.parentElement.remove()"><i class="bi bi-trash3-fill"></i></button>`;
+        container.appendChild(div);
+    }
+
+    function renderAll() {
+        const area = document.getElementById('render-area'); area.innerHTML = '';
+        getTripleDates(currentSelectedDate).forEach((d, idx) => {
+            const dStr = d.toISOString().split('T')[0];
+            const data = db.reports[dStr] || { tasks: [], comments: "" };
+            area.innerHTML += `<div class="col-xl-4"><div class="glass-card h-100 p-4"><div class="d-flex justify-content-between mb-3"><h6 class="fw-bold ${idx === 2 ? 'text-primary' : ''}">${["PASSADO", "ONTEM", "SELECIONADO"][idx]}</h6><small class="opacity-50 text-terminal">${d.toLocaleDateString('pt-BR')}</small></div><div id="tasks-${dStr}"></div><button class="btn btn-outline-secondary btn-sm w-100 mt-2 mb-3" onclick="createTaskRow('${dStr}')" style="border-style:dashed">+ TASK</button><textarea id="comm-${dStr}" class="form-control" rows="3">${data.comments || ""}</textarea></div></div>`;
+            data.tasks.forEach(t => createTaskRow(dStr, t.desc, t.hour));
+        });
+        document.getElementById('queue-field').value = db.queue || "";
+        document.getElementById('notebook-field').value = db.notebook || "";
+    }
+
+    async function saveData(manual = false) {
+        if(manual) document.getElementById('main-save-btn').style.opacity = '0.5';
+        getTripleDates(currentSelectedDate).forEach(d => {
+            const dStr = d.toISOString().split('T')[0]; const container = document.getElementById(`tasks-${dStr}`);
+            if (container) {
+                const rows = container.querySelectorAll('.mb-2'); if(!db.reports[dStr]) db.reports[dStr] = {};
+                db.reports[dStr].tasks = Array.from(rows).map(r => ({ desc: r.querySelector('.t-desc').value, hour: r.querySelector('.t-hour').value }));
+                db.reports[dStr].comments = document.getElementById(`comm-${dStr}`).value;
+            }
+        });
+        db.queue = document.getElementById('queue-field').value;
+        db.notebook = document.getElementById('notebook-field').value;
+        localStorage.setItem('mydaily_core', JSON.stringify(db));
+        if (mainHandle) { try { const w = await mainHandle.createWritable(); await w.write(JSON.stringify(db, null, 2)); await w.close(); } catch(e){} }
+        if (bkpHandle) { try { const w = await bkpHandle.createWritable(); await w.write(JSON.stringify(db, null, 2)); await w.close(); } catch(e){} }
+        document.getElementById('last-sync').innerText = "ÚLTIMO SYNC: " + new Date().toLocaleTimeString();
+        if(manual) document.getElementById('main-save-btn').style.opacity = '1';
+    }
+
+    function updateCharts() {
+        const labels = []; const taskCounts = [];
+        for(let i=6; i>=0; i--) { const d = new Date(new Date(currentSelectedDate + 'T12:00:00').setDate(new Date(currentSelectedDate).getDate() - i)); const ds = d.toISOString().split('T')[0]; labels.push(ds.split('-').reverse().slice(0,2).join('/')); taskCounts.push(db.reports[ds]?.tasks?.length || 0); }
+        const currentData = db.reports[currentSelectedDate] || { tasks: [] };
+        const totalHrs = currentData.tasks.reduce((a, t) => a + (parseFloat(t.hour.replace(',','.')) || 0), 0);
+        document.getElementById('kpi-tasks').innerText = currentData.tasks.length;
+        document.getElementById('kpi-hours').innerText = totalHrs.toFixed(1);
+        document.getElementById('kpi-efficiency').innerText = Math.min(((totalHrs/7)*100), 100).toFixed(0) + "%";
+        if(trendChart) trendChart.destroy();
+        if(distChart) distChart.destroy();
+        trendChart = new Chart(document.getElementById('mainTrendChart'), { type: 'bar', data: { labels, datasets: [{ label: 'Tasks', data: taskCounts, backgroundColor: '#3d5afe', borderRadius: 8 }]}, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } } });
+        distChart = new Chart(document.getElementById('taskDistributionChart'), { type: 'doughnut', data: { labels: currentData.tasks.map(t => t.desc.slice(0,10)), datasets: [{ data: currentData.tasks.map(t => parseFloat(t.hour.replace(',','.')) || 0), backgroundColor: ['#00f2ff', '#3d5afe', '#8e24aa', '#ff9100'], borderWeight: 0 }]}, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } } });
+    }
+
+    // LÓGICA DO RELATÓRIO (RESTAURADA)
+    async function handleReportRequest() {
+        await saveData(true);
+        const data = db.reports[currentSelectedDate];
+        const dDisp = currentSelectedDate.split('-').reverse().join('/');
+        let text = `🚀 MYDAILY - ${dDisp}\n-------------------------------------------\n\n✅ [TASKS]\n`;
+        if(data && data.tasks && data.tasks.length > 0) {
+            data.tasks.forEach(t => text += `- ${t.desc} (${t.hour}h)\n`);
+        } else {
+            text += "Nenhuma tarefa registrada.\n";
+        }
+        text += `\n📝 [NOTAS]\n${(data && data.comments) ? data.comments : "Nenhuma nota."}\n`;
+        text += `\n⏳ [ANOTAÇÕES GLOBAIS]\n${db.queue || "Vazio."}`;
+        
+        document.getElementById('base-report-text').value = text;
+        const modal = new bootstrap.Modal(document.getElementById('reportModal'));
+        modal.show();
+    }
+
+    function copyReport() {
+        const textArea = document.getElementById("base-report-text");
+        navigator.clipboard.writeText(textArea.value);
+        const btn = document.querySelector('.modal-footer button');
+        const originalText = btn.innerText;
+        btn.innerText = "COPIADO COM SUCESSO!";
+        btn.classList.replace('btn-outline-info', 'btn-success');
+        setTimeout(() => {
+            btn.innerText = originalText;
+            btn.classList.replace('btn-success', 'btn-outline-info');
+        }, 2000);
+    }
+
+    setInterval(() => { autoSaveSeconds--; document.getElementById('next-save').innerText = `PRÓXIMO AUTO: ${Math.floor(autoSaveSeconds/60)}:${((autoSaveSeconds%60).toString().padStart(2,'0'))}`; if (autoSaveSeconds <= 0) { saveData(false); autoSaveSeconds = 300; } }, 1000);
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
