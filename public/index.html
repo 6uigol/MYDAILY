@@ -33,6 +33,25 @@
             min-height: 100vh; overflow-x: hidden; padding-bottom: 48px;
         }
 
+        /* Cursores personalizados (SVG); se o navegador não carregar, cai no padrão */
+        html, body {
+            cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%2300f2ff'/%3E%3Cstop offset='1' stop-color='%233d5afe'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M3 2 L3 19 L7.5 14.8 L10.4 21.2 L13.2 20 L10.3 13.7 L16.5 13.7 Z' fill='url(%23g)' stroke='%23000' stroke-width='1.4' stroke-linejoin='round'/%3E%3C/svg%3E") 3 2, auto;
+        }
+        a, button, .btn, [role="button"], .nav-link, .dropdown-item, .form-check-input, .form-check-label,
+        input[type="date"], input[type="checkbox"], select, label[for] {
+            cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M3 2 L3 19 L7.5 14.8 L10.4 21.2 L13.2 20 L10.3 13.7 L16.5 13.7 Z' fill='%23ffffff' stroke='%233d5afe' stroke-width='1.6' stroke-linejoin='round'/%3E%3Ccircle cx='18' cy='18' r='3.2' fill='%2300f2ff' stroke='%23000' stroke-width='1'/%3E%3C/svg%3E") 3 2, pointer;
+        }
+        input[type="text"], input[type="email"], input[type="password"], input[type="number"], input:not([type]), textarea {
+            cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='24' viewBox='0 0 16 24'%3E%3Cpath d='M4 2h8M8 2v20M4 22h8' stroke='%23000' stroke-width='4' stroke-linecap='round'/%3E%3Cpath d='M4 2h8M8 2v20M4 22h8' stroke='%2300f2ff' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") 8 12, text;
+        }
+        button:disabled, .btn:disabled { cursor: not-allowed; }
+
+        /* Cursor de digitação estilo terminal */
+        input, textarea { caret-color: var(--terminal); }
+        textarea.form-control, .form-control { caret-shape: block; }
+        .auth-input { caret-shape: bar; caret-color: var(--accent); }
+        ::selection { background: rgba(61, 90, 254, .45); color: #fff; }
+
         .screen {
             position: fixed; inset: 0; z-index: 2000; background: #000;
             display: flex; align-items: center; justify-content: center; padding: 16px; overflow-y: auto;
@@ -68,14 +87,24 @@
         .task-row .t-desc { flex: 1 1 auto; min-width: 0; }
         .task-row .t-hour { flex: 0 0 78px; width: 78px; text-align: center; }
         .hours-badge { font-family: 'Fira Code', monospace; color: var(--terminal); font-size: .8rem; background: rgba(0,242,255,.08); border-radius: 8px; padding: 3px 9px; white-space: nowrap; }
+        .saldo-chip { font-family: 'Fira Code', monospace; font-size: .75rem; font-weight: 600; border-radius: 8px; padding: 2px 8px; white-space: nowrap; }
+        .saldo-pos { color: var(--save-green); background: rgba(0,255,65,.1); }
+        .saldo-neg { color: var(--queue-color); background: rgba(255,145,0,.12); }
+        .saldo-zero { color: var(--muted); background: rgba(255,255,255,.05); }
+        .text-extra { color: var(--save-green) !important; }
+        .text-compensar { color: var(--queue-color) !important; }
+        .folga-switch { font-size: .8rem; color: var(--muted); }
 
-        .queue-area {
+        textarea.form-control.queue-area {
             background: repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(255, 145, 0, 0.04) 40px) !important;
             border-left: 10px solid var(--queue-color) !important;
-            min-height: 320px; height: 460px; resize: vertical;
+            min-height: 320px; resize: none; overflow: hidden;
             font-size: 1.1rem; line-height: 2; padding: 28px !important;
         }
-        .notebook-area { min-height: 65vh; padding: 28px !important; border-left: 8px solid var(--accent) !important; resize: vertical; line-height: 1.8; }
+        textarea.form-control.notebook-area {
+            min-height: calc(100vh - 260px); padding: 28px !important; border-left: 8px solid var(--accent) !important;
+            resize: none; overflow: hidden; line-height: 1.8;
+        }
 
         .chart-container { position: relative; height: 340px; width: 100%; }
         .chart-empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: .9rem; pointer-events: none; }
@@ -221,13 +250,20 @@
             <div class="tab-pane fade" id="tab-charts">
                 <div class="row g-4 mb-4 text-center">
                     <div class="col-6 col-md-3"><div class="glass-card p-4 h-100"><div id="kpi-tasks" class="kpi-value">0</div><div class="kpi-label">TASKS NO DIA</div></div></div>
-                    <div class="col-6 col-md-3"><div class="glass-card p-4 h-100"><div id="kpi-hours" class="kpi-value">0</div><div class="kpi-label">HORAS NO DIA</div></div></div>
-                    <div class="col-6 col-md-3"><div class="glass-card p-4 h-100"><div id="kpi-efficiency" class="kpi-value">0%</div><div class="kpi-label" id="kpi-efficiency-label">DA META</div></div></div>
-                    <div class="col-6 col-md-3"><div class="glass-card p-4 h-100"><div id="kpi-avg" class="kpi-value">0</div><div class="kpi-label">MÉDIA 7 DIAS</div></div></div>
+                    <div class="col-6 col-md-3"><div class="glass-card p-4 h-100"><div id="kpi-hours" class="kpi-value">0</div><div class="kpi-label" id="kpi-hours-label">HORAS NO DIA</div></div></div>
+                    <div class="col-6 col-md-3"><div class="glass-card p-4 h-100"><div id="kpi-saldo" class="kpi-value">0h</div><div class="kpi-label" id="kpi-saldo-label">SALDO DO DIA</div></div></div>
+                    <div class="col-6 col-md-3"><div class="glass-card p-4 h-100"><div id="kpi-bank" class="kpi-value">0h</div><div class="kpi-label" id="kpi-bank-label">BANCO DE HORAS</div></div></div>
                 </div>
-                <div class="row g-4">
-                    <div class="col-lg-8"><div class="glass-card p-4"><h5 class="fw-bold mb-4" style="color:var(--accent)">HORAS — ÚLTIMOS 7 DIAS</h5><div class="chart-container"><canvas id="mainTrendChart"></canvas></div></div></div>
-                    <div class="col-lg-4"><div class="glass-card p-4"><h5 class="fw-bold mb-4" style="color:var(--terminal)">DISTRIBUIÇÃO DO DIA</h5><div class="chart-container"><canvas id="taskDistributionChart"></canvas><div class="chart-empty d-none" id="dist-empty">Sem horas lançadas neste dia</div></div></div></div>
+                <div class="row g-4 mb-4">
+                    <div class="col-lg-8"><div class="glass-card p-4"><h5 class="fw-bold mb-4" style="color:var(--accent)" id="trend-title">HORAS POR TAREFA — ÚLTIMOS 7 DIAS</h5><div class="chart-container" style="height:420px"><canvas id="mainTrendChart"></canvas><div class="chart-empty d-none" id="trend-empty">Sem horas lançadas nesses dias</div></div></div></div>
+                    <div class="col-lg-4"><div class="glass-card p-4"><h5 class="fw-bold mb-4" style="color:var(--terminal)">DISTRIBUIÇÃO DO DIA</h5><div class="chart-container" style="height:420px"><canvas id="taskDistributionChart"></canvas><div class="chart-empty d-none" id="dist-empty">Sem horas lançadas neste dia</div></div></div></div>
+                </div>
+                <div class="glass-card p-4">
+                    <div class="d-flex flex-wrap justify-content-between align-items-baseline gap-2 mb-4">
+                        <h5 class="fw-bold mb-0" style="color:var(--save-green)" id="bank-title">BANCO DE HORAS</h5>
+                        <small class="text-secondary"><span style="color:var(--save-green)">■</span> hora extra &nbsp; <span style="color:var(--queue-color)">■</span> a compensar &nbsp; <span style="color:var(--terminal)">━</span> saldo acumulado</small>
+                    </div>
+                    <div class="chart-container" style="height:320px"><canvas id="bankChart"></canvas><div class="chart-empty d-none" id="bank-empty">Nenhum dia com horas neste mês</div></div>
                 </div>
             </div>
 
@@ -257,6 +293,7 @@
             <div class="modal-body">
                 <div class="d-flex flex-wrap gap-4 mb-3 small">
                     <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="rep-prev"><label class="form-check-label" for="rep-prev">Incluir dia anterior</label></div>
+                    <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="rep-hours" checked><label class="form-check-label" for="rep-hours">Incluir saldo e banco de horas</label></div>
                     <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="rep-global" checked><label class="form-check-label" for="rep-global">Incluir anotações globais</label></div>
                 </div>
                 <textarea id="base-report-text" class="form-control" rows="16" style="color:#fff; font-size:.9rem; line-height:1.6; border-color:rgba(0,242,255,.15);"></textarea>
@@ -282,7 +319,12 @@
                 <input type="number" id="set-meta" class="form-control mb-4" min="0.5" max="24" step="0.5" required>
                 <div class="form-check form-switch">
                     <input class="form-check-input" type="checkbox" id="set-skip">
-                    <label class="form-check-label" for="set-skip">Pular sábado e domingo nos dias exibidos e nas setas</label>
+                    <label class="form-check-label" for="set-skip">Pular sábado e domingo nos dias exibidos, nas setas e nos gráficos</label>
+                </div>
+                <div class="small text-secondary mt-3">
+                    A meta é o esperado por dia útil. Horas acima dela contam como <b style="color:var(--save-green)">hora extra</b>; abaixo, como <b style="color:var(--queue-color)">a compensar</b>.
+                    Com "pular fim de semana" ligado, sábado e domingo esperam 0h (tudo que for lançado neles é extra).
+                    Marque um dia como <b>folga / compensação</b> para descontar a meta inteira do banco.
                 </div>
             </div>
             <div class="modal-footer border-0 pt-0">
@@ -348,6 +390,7 @@
         selected: todayKey(),
         reports: {},            // 'YYYY-MM-DD' -> { tasks: [{desc, hour}], comments }
         loaded: new Set(),      // dias já buscados no Firestore
+        allLoaded: false,       // todos os dias carregados (banco de horas)
         profile: emptyProfile(),
         dirtyDates: new Set(),
         profileDirty: false,
@@ -356,7 +399,7 @@
         retryTimer: null,
         chartTimer: null,
         nav: 0,
-        charts: { trend: null, dist: null },
+        charts: { trend: null, dist: null, bank: null },
     };
 
     function emptyProfile() { return { queue: '', notebook: '', settings: { ...DEFAULT_SETTINGS } }; }
@@ -417,6 +460,11 @@
     const round1 = n => Math.round(n * 10) / 10;
     function fmtH(n) { return round1(n).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + 'h'; }
     function totalHours(tasks) { return tasks.reduce((a, t) => a + parseHours(t.hour), 0); }
+    function fmtSigned(n) {
+        const r = round1(n);
+        if (r === 0) return '0h';
+        return (r > 0 ? '+' : '−') + fmtH(Math.abs(r));
+    }
 
     // ------------------------------------------------------------ Dados
     function cleanReport(r) {
@@ -426,11 +474,48 @@
                 .map(t => ({ desc: String(t?.desc ?? '').trim(), hour: String(t?.hour ?? '').trim() }))
                 .filter(t => t.desc || t.hour),
             comments: String(r?.comments ?? ''),
+            folga: r?.folga === true,
         };
     }
-    const isEmptyReport = r => !r.tasks.length && !r.comments.trim();
+    const isEmptyReport = r => !r.tasks.length && !r.comments.trim() && !r.folga;
+    // Documento gravado no Firestore: "folga" só vai quando marcada
+    function reportDoc(r) {
+        const d = { tasks: r.tasks, comments: r.comments, updatedAt: serverTimestamp() };
+        if (r.folga) d.folga = true;
+        return d;
+    }
 
-    function report(k) { return state.reports[k] ??= { tasks: [], comments: '' }; }
+    function report(k) { return state.reports[k] ??= { tasks: [], comments: '', folga: false }; }
+
+    // ------------------------------------------------------------ Meta, saldo e banco de horas
+    function metaHoras() { return Number(state.profile.settings.metaHoras) || DEFAULT_SETTINGS.metaHoras; }
+    // Horas esperadas no dia: a meta nos dias úteis; 0 no fim de semana quando ele é pulado
+    function expectedHours(k) { return skipWeekends() && isWeekend(k) ? 0 : metaHoras(); }
+
+    // Só entra no banco o dia que tem horas lançadas ou está marcado como folga/compensação
+    function dayBalance(k) {
+        const r = cleanReport(state.reports[k]);
+        const worked = totalHours(r.tasks);
+        const expected = expectedHours(k);
+        const counted = worked > 0 || r.folga;
+        return { worked, expected, folga: r.folga, counted, saldo: counted ? worked - expected : 0 };
+    }
+
+    function bankUntil(k) {
+        let total = 0;
+        for (const d of Object.keys(state.reports)) if (isDateKey(d) && d <= k) total += dayBalance(d).saldo;
+        return total;
+    }
+
+    function saldoText(b) {
+        if (!b.counted) return '';
+        if (b.folga && b.worked === 0) return `folga ${fmtSigned(b.saldo)}`;
+        const r = round1(b.saldo);
+        if (r > 0) return `${fmtSigned(r)} extra`;
+        if (r < 0) return `${fmtSigned(r)} a compensar`;
+        return 'na meta';
+    }
+    const saldoClass = n => round1(n) > 0 ? 'saldo-pos' : round1(n) < 0 ? 'saldo-neg' : 'saldo-zero';
 
     const reportsCol = () => collection(db, 'users', state.user.uid, 'reports');
     const userRef = () => doc(db, 'users', state.user.uid);
@@ -445,7 +530,15 @@
         };
     }
 
+    // Carrega todos os dias de uma vez no login (necessário para o banco de horas)
+    async function loadAllReports() {
+        const snap = await getDocs(reportsCol());
+        snap.forEach(d => { if (isDateKey(d.id) && !state.dirtyDates.has(d.id)) state.reports[d.id] = cleanReport(d.data()); });
+        state.allLoaded = true;
+    }
+
     async function ensureRange(fromK, toK) {
+        if (state.allLoaded) return;
         const keys = [];
         for (let k = fromK; k <= toK; k = addDays(k, 1)) keys.push(k);
         if (keys.every(k => state.loaded.has(k))) return;
@@ -494,7 +587,7 @@
             const ref = doc(reportsCol(), k);
             const r = cleanReport(state.reports[k]);
             if (isEmptyReport(r)) batch.delete(ref);
-            else batch.set(ref, { ...r, updatedAt: serverTimestamp() });
+            else batch.set(ref, reportDoc(r));
         }
         if (profileDirty) {
             batch.set(userRef(), { queue: p.queue, notebook: p.notebook, settings: p.settings, updatedAt: serverTimestamp() }, { merge: true });
@@ -557,9 +650,13 @@
                 el('h6', 'fw-bold mb-0' + (selected ? ' text-primary' : ''), dayLabel(k)),
                 el('small', 'text-secondary', `${weekdayName(k, 'short')} · ${fmtBR(k)}`)
             );
+            const badges = el('div', 'd-flex flex-column align-items-end gap-1');
             const badge = el('span', 'hours-badge');
             badge.dataset.role = 'total';
-            head.append(title, badge);
+            const chip = el('span', 'saldo-chip');
+            chip.dataset.role = 'saldo';
+            badges.append(badge, chip);
+            head.append(title, badges);
 
             const list = el('div');
             const addBtn = el('button', 'btn btn-outline-secondary btn-sm w-100 mt-1 mb-3 btn-dashed', '+ TASK');
@@ -572,7 +669,17 @@
             comm.value = report(k).comments;
             comm.addEventListener('input', () => { report(k).comments = comm.value; markDirty(k); });
 
-            card.append(head, list, addBtn, comm);
+            const folgaWrap = el('div', 'form-check form-switch folga-switch mt-2 mb-0');
+            const folga = el('input', 'form-check-input');
+            folga.type = 'checkbox';
+            folga.id = 'folga-' + k;
+            folga.checked = report(k).folga;
+            const folgaLbl = el('label', 'form-check-label', 'Folga / compensação (desconta a meta do banco)');
+            folgaLbl.htmlFor = folga.id;
+            folga.addEventListener('change', () => { report(k).folga = folga.checked; updateBadge(card, k); markDirty(k); });
+            folgaWrap.append(folga, folgaLbl);
+
+            card.append(head, list, addBtn, comm, folgaWrap);
             col.append(card);
             area.append(col);
 
@@ -626,13 +733,30 @@
 
     function updateBadge(card, k) {
         const tasks = cleanReport(report(k)).tasks;
-        card.querySelector('[data-role="total"]').textContent = `${tasks.length} task${tasks.length === 1 ? '' : 's'} · ${fmtH(totalHours(tasks))}`;
+        const b = dayBalance(k);
+        card.querySelector('[data-role="total"]').textContent =
+            `${tasks.length} task${tasks.length === 1 ? '' : 's'} · ${fmtH(b.worked)} / ${fmtH(b.expected)}`;
+        const chip = card.querySelector('[data-role="saldo"]');
+        chip.textContent = saldoText(b);
+        chip.className = 'saldo-chip ' + saldoClass(b.saldo) + (b.counted ? '' : ' d-none');
+        chip.title = b.counted ? `Esperado ${fmtH(b.expected)} · lançado ${fmtH(b.worked)}` : '';
     }
 
     function fillProfileFields() {
         $('queue-field').value = state.profile.queue;
         $('notebook-field').value = state.profile.notebook;
+        autosizeAll();
     }
+
+    // Cresce a caixa junto com o texto (a rolagem fica na página, não dentro do campo)
+    function autosize(ta) {
+        if (!ta.offsetParent) return; // aba escondida: ajusta quando ela abrir
+        const scrollY = window.scrollY;
+        ta.style.height = 'auto';
+        ta.style.height = ta.scrollHeight + 4 + 'px';
+        window.scrollTo(0, scrollY);
+    }
+    function autosizeAll() { autosize($('queue-field')); autosize($('notebook-field')); }
 
     // ------------------------------------------------------------ Navegação
     async function goToDate(k) {
@@ -663,78 +787,172 @@
         state.chartTimer = setTimeout(updateCharts, 400);
     }
 
+    const CHART_DAYS = 7;
+    const CHART_MAX_TASKS = 9;          // tarefas com cor própria; o resto vira "Outras"
+    const OTHERS_COLOR = '#4a4f5a';
+
+    // "Task 16964: ..." agrupa pelo número, mesmo que o texto mude entre os dias
+    function taskKey(desc) {
+        const s = (desc || '(sem descrição)').trim().toLowerCase().replace(/\s+/g, ' ');
+        const n = s.match(/^(?:task|tarefa)\s*#?\s*(\d+)/);
+        return n ? 'task#' + n[1] : s;
+    }
+    const shortLabel = (s, n = 34) => s.length > n ? s.slice(0, n - 1) + '…' : s;
+    const legendLabel = (key, name, n) => key.startsWith('task#') ? 'Task ' + key.slice(5) : shortLabel(name, n);
+
+    // Últimos 7 dias até a data selecionada. Com "pular fim de semana" ligado,
+    // sábado/domingo só entram se tiver algo lançado neles.
+    function chartDays(sel) {
+        const out = [];
+        for (let k = sel, guard = 0; out.length < CHART_DAYS && guard < 30; k = addDays(k, -1), guard++) {
+            const hasData = !isEmptyReport(cleanReport(state.reports[k]));
+            if (!skipWeekends() || !isWeekend(k) || hasData) out.unshift(k);
+        }
+        return out;
+    }
+
+    // Desenha a linha da meta e o saldo (+extra / −a compensar) em cima de cada barra
+    const saldoPlugin = {
+        id: 'saldo',
+        afterDatasetsDraw(chart, _args, opts) {
+            const { ctx, chartArea, scales: { x, y } } = chart;
+            ctx.save();
+            opts.expected.forEach((exp, i) => {
+                if (!(exp > 0)) return;
+                const w = x.width / opts.expected.length;
+                const cx = x.getPixelForValue(i);
+                const yy = y.getPixelForValue(exp);
+                ctx.setLineDash([5, 4]);
+                ctx.strokeStyle = 'rgba(0,242,255,.8)';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.moveTo(cx - w * 0.45, yy);
+                ctx.lineTo(cx + w * 0.45, yy);
+                ctx.stroke();
+            });
+            ctx.setLineDash([]);
+            ctx.textAlign = 'center';
+            ctx.font = '700 12px Inter, sans-serif';
+            opts.balances.forEach((b, i) => {
+                if (!b.counted) return;
+                const r = round1(b.saldo);
+                const top = y.getPixelForValue(Math.max(b.worked, b.expected));
+                ctx.fillStyle = r > 0 ? '#00ff41' : r < 0 ? '#ff9100' : '#8a8f98';
+                ctx.fillText(b.folga && b.worked === 0 ? 'folga' : (r === 0 ? '✓' : fmtSigned(r)), x.getPixelForValue(i), Math.max(chartArea.top + 12, top - 8));
+            });
+            ctx.restore();
+        },
+    };
+
     async function updateCharts() {
         const sel = state.selected;
-        try { await ensureRange(addDays(sel, -6), sel); } catch (e) { console.error(e); }
+        try { await ensureRange(addDays(sel, -13), sel); } catch (e) { console.error(e); }
+        if (sel !== state.selected) return;
 
-        const labels = [], hours = [], counts = [];
-        for (let i = 6; i >= 0; i--) {
-            const k = addDays(sel, -i);
-            const r = cleanReport(state.reports[k]);
-            labels.push(`${weekdayName(k, 'short').replace('.', '')} ${fmtBR(k).slice(0, 5)}`);
-            hours.push(round1(totalHours(r.tasks)));
-            counts.push(r.tasks.length);
+        const days = chartDays(sel);
+        const balances = days.map(dayBalance);
+        $('trend-title').textContent = `HORAS POR TAREFA — ÚLTIMOS 7 DIAS${skipWeekends() ? ' ÚTEIS' : ''}`;
+        const labels = days.map(k => `${weekdayName(k, 'short').replace('.', '')} ${fmtBR(k).slice(0, 5)}`);
+
+        // Horas por tarefa (agrupadas pela descrição) em cada dia
+        const byTask = new Map();   // key -> { name, total, perDay[] }
+        days.forEach((k, i) => {
+            for (const t of cleanReport(state.reports[k]).tasks) {
+                const key = taskKey(t.desc);
+                if (!byTask.has(key)) byTask.set(key, { name: t.desc || '(sem descrição)', total: 0, perDay: days.map(() => 0) });
+                const e = byTask.get(key);
+                const h = parseHours(t.hour);
+                e.perDay[i] += h;
+                e.total += h;
+            }
+        });
+        const ranked = [...byTask.entries()].filter(([, e]) => e.total > 0).sort((a, b) => b[1].total - a[1].total);
+        const top = ranked.slice(0, CHART_MAX_TASKS);
+        const rest = ranked.slice(CHART_MAX_TASKS);
+        const colorOf = new Map(top.map(([key], i) => [key, CHART_COLORS[i % CHART_COLORS.length]]));
+
+        const datasets = top.map(([key, e]) => ({
+            label: legendLabel(key, e.name), fullLabel: e.name, data: e.perDay.map(round1),
+            backgroundColor: colorOf.get(key), borderRadius: 4, borderSkipped: false,
+        }));
+        if (rest.length) {
+            datasets.push({
+                label: `Outras (${rest.length})`, fullLabel: `Outras ${rest.length} tarefas`,
+                data: days.map((_, i) => round1(rest.reduce((a, [, e]) => a + e.perDay[i], 0))),
+                backgroundColor: OTHERS_COLOR, borderRadius: 4, borderSkipped: false,
+            });
         }
-        const cur = cleanReport(state.reports[sel]);
-        const tot = totalHours(cur.tasks);
-        const meta = Number(state.profile.settings.metaHoras) || DEFAULT_SETTINGS.metaHoras;
-        const worked = hours.filter(h => h > 0);
 
+        // KPIs
+        const cur = cleanReport(state.reports[sel]);
+        const curB = dayBalance(sel);
+        const bank = bankUntil(sel);
         $('kpi-tasks').textContent = cur.tasks.length;
-        $('kpi-hours').textContent = fmtH(tot);
-        $('kpi-efficiency').textContent = Math.round((tot / meta) * 100) + '%';
-        $('kpi-efficiency-label').textContent = `DA META (${fmtH(meta)})`;
-        $('kpi-avg').textContent = fmtH(worked.length ? worked.reduce((a, b) => a + b, 0) / worked.length : 0);
+        $('kpi-hours').textContent = fmtH(curB.worked);
+        $('kpi-hours-label').textContent = `HORAS NO DIA (ESPERADO ${fmtH(curB.expected)})`;
+        $('kpi-saldo').textContent = curB.counted ? fmtSigned(curB.saldo) : '—';
+        $('kpi-saldo').className = 'kpi-value ' + (!curB.counted ? '' : round1(curB.saldo) > 0 ? 'text-extra' : round1(curB.saldo) < 0 ? 'text-compensar' : '');
+        $('kpi-saldo-label').textContent = !curB.counted ? 'SALDO DO DIA (SEM HORAS)' : round1(curB.saldo) > 0 ? 'HORA EXTRA NO DIA' : round1(curB.saldo) < 0 ? 'A COMPENSAR NO DIA' : 'NA META';
+        $('kpi-bank').textContent = fmtSigned(bank);
+        $('kpi-bank').className = 'kpi-value ' + (round1(bank) > 0 ? 'text-extra' : round1(bank) < 0 ? 'text-compensar' : '');
+        $('kpi-bank-label').textContent = round1(bank) > 0 ? `BANCO: HORAS EXTRAS ATÉ ${fmtBR(sel).slice(0, 5)}` : round1(bank) < 0 ? `BANCO: A COMPENSAR ATÉ ${fmtBR(sel).slice(0, 5)}` : `BANCO DE HORAS ATÉ ${fmtBR(sel).slice(0, 5)}`;
 
         Chart.defaults.color = '#8a8f98';
         Chart.defaults.borderColor = 'rgba(255,255,255,0.06)';
         Chart.defaults.font.family = 'Inter, sans-serif';
 
-        const metaLine = labels.map(() => meta);
-        if (!state.charts.trend) {
-            state.charts.trend = new Chart($('mainTrendChart'), {
-                type: 'bar',
-                data: {
-                    labels,
-                    datasets: [
-                        { label: 'Horas', data: hours, backgroundColor: '#3d5afe', borderRadius: 8, order: 2 },
-                        { label: 'Meta', data: metaLine, type: 'line', borderColor: 'rgba(0,242,255,.6)', borderDash: [6, 6], pointRadius: 0, borderWidth: 2, order: 1 },
-                    ],
+        // Recria porque a quantidade de séries (tarefas) muda de semana para semana
+        state.charts.trend?.destroy();
+        $('trend-empty').classList.toggle('d-none', datasets.length > 0);
+        const yMax = Math.max(1, ...balances.map(b => Math.max(b.worked, b.expected)));
+        state.charts.trend = new Chart($('mainTrendChart'), {
+            type: 'bar',
+            data: { labels, datasets },
+            plugins: [saldoPlugin],
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                layout: { padding: { top: 8 } },
+                scales: {
+                    x: { stacked: true, grid: { display: false } },
+                    // escala dinâmica: sempre cabe a meta e o dia com mais horas, com folga para o rótulo do saldo
+                    y: { stacked: true, beginAtZero: true, suggestedMax: Math.ceil(yMax * 1.15), ticks: { callback: v => v + 'h' } },
                 },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    scales: { y: { beginAtZero: true, ticks: { callback: v => v + 'h' } } },
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: { callbacks: {
-                            label: c => c.dataset.label === 'Meta' ? `Meta: ${fmtH(c.raw)}` : `Horas: ${fmtH(c.raw)}`,
-                            afterLabel: c => c.dataset.label === 'Horas' ? `Tasks: ${state.charts.trendCounts[c.dataIndex]}` : '',
-                        } },
+                plugins: {
+                    saldo: { expected: balances.map(b => b.expected), balances },
+                    legend: { position: 'bottom', labels: { boxWidth: 10, padding: 12 } },
+                    tooltip: {
+                        mode: 'index',
+                        filter: item => item.raw > 0,
+                        itemSort: (a, b) => b.raw - a.raw,
+                        callbacks: {
+                            label: c => ` ${c.dataset.fullLabel}: ${fmtH(c.raw)}`,
+                            footer: items => {
+                                const b = balances[items[0]?.dataIndex];
+                                if (!b) return '';
+                                return [`Total: ${fmtH(b.worked)} de ${fmtH(b.expected)} esperadas`, saldoText(b)].filter(Boolean);
+                            },
+                        },
                     },
                 },
-            });
-        } else {
-            const ch = state.charts.trend;
-            ch.data.labels = labels;
-            ch.data.datasets[0].data = hours;
-            ch.data.datasets[1].data = metaLine;
-            ch.update();
-        }
-        state.charts.trendCounts = counts;
+            },
+        });
 
-        const withHours = cur.tasks.map(t => ({ label: t.desc || '(sem descrição)', h: round1(parseHours(t.hour)) })).filter(t => t.h > 0);
+        // Distribuição do dia, com as mesmas cores do gráfico da semana
+        const withHours = cur.tasks.map(t => ({ name: t.desc || '(sem descrição)', key: taskKey(t.desc), h: round1(parseHours(t.hour)) })).filter(t => t.h > 0);
         $('dist-empty').classList.toggle('d-none', withHours.length > 0);
-        const distLabels = withHours.map(t => t.label.length > 28 ? t.label.slice(0, 27) + '…' : t.label);
+        const distLabels = withHours.map(t => legendLabel(t.key, t.name, 28));
         const distData = withHours.map(t => t.h);
+        const distColors = withHours.map(t => colorOf.get(t.key) || OTHERS_COLOR);
+        state.charts.distNames = withHours.map(t => t.name);
         if (!state.charts.dist) {
             state.charts.dist = new Chart($('taskDistributionChart'), {
                 type: 'doughnut',
-                data: { labels: distLabels, datasets: [{ data: distData, backgroundColor: CHART_COLORS, borderWidth: 0 }] },
+                data: { labels: distLabels, datasets: [{ data: distData, backgroundColor: distColors, borderWidth: 0 }] },
                 options: {
                     responsive: true, maintainAspectRatio: false, cutout: '62%',
                     plugins: {
                         legend: { position: 'bottom', labels: { boxWidth: 10, padding: 10 } },
-                        tooltip: { callbacks: { label: c => ` ${fmtH(c.raw)}` } },
+                        tooltip: { callbacks: { label: c => ` ${state.charts.distNames[c.dataIndex]}: ${fmtH(c.raw)}` } },
                     },
                 },
             });
@@ -742,14 +960,75 @@
             const ch = state.charts.dist;
             ch.data.labels = distLabels;
             ch.data.datasets[0].data = distData;
+            ch.data.datasets[0].backgroundColor = distColors;
             ch.update();
         }
+
+        updateBankChart(sel);
+    }
+
+    // Banco de horas do mês da data selecionada: saldo de cada dia + acumulado (desde o início)
+    function updateBankChart(sel) {
+        const monthPrefix = sel.slice(0, 7);
+        const [y, m] = monthPrefix.split('-').map(Number);
+        $('bank-title').textContent = 'BANCO DE HORAS — ' + new Date(y, m - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).toUpperCase();
+
+        const days = Object.keys(state.reports)
+            .filter(k => isDateKey(k) && k.startsWith(monthPrefix) && k <= sel && dayBalance(k).counted)
+            .sort();
+        const inicioMes = round1(bankUntil(addDays(monthPrefix + '-01', -1)));
+        let running = inicioMes;
+        const saldos = [], acumulado = [];
+        for (const k of days) {
+            const s = round1(dayBalance(k).saldo);
+            running += s;
+            saldos.push(s);
+            acumulado.push(round1(running));
+        }
+
+        state.charts.bank?.destroy();
+        $('bank-empty').classList.toggle('d-none', days.length > 0);
+        state.charts.bank = new Chart($('bankChart'), {
+            data: {
+                labels: days.map(k => `${weekdayName(k, 'short').replace('.', '')} ${fmtBR(k).slice(0, 5)}`),
+                datasets: [
+                    { type: 'bar', label: 'Saldo do dia', data: saldos, order: 2, borderRadius: 4,
+                      backgroundColor: saldos.map(s => s > 0 ? 'rgba(0,255,65,.75)' : s < 0 ? 'rgba(255,145,0,.85)' : 'rgba(138,143,152,.5)') },
+                    { type: 'line', label: 'Acumulado', data: acumulado, order: 1, borderColor: '#00f2ff', backgroundColor: '#00f2ff',
+                      borderWidth: 2, pointRadius: 3, tension: 0.25 },
+                ],
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                scales: {
+                    x: { grid: { display: false } },
+                    y: { ticks: { callback: v => fmtSigned(v) }, grid: { color: c => c.tick.value === 0 ? 'rgba(255,255,255,.25)' : 'rgba(255,255,255,0.06)' } },
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        mode: 'index',
+                        callbacks: {
+                            label: c => c.dataset.type === 'line'
+                                ? ` Banco acumulado: ${fmtSigned(c.raw)}`
+                                : ` ${saldoText(dayBalance(days[c.dataIndex]))}`,
+                            afterBody: items => {
+                                const b = dayBalance(days[items[0].dataIndex]);
+                                return `Lançado ${fmtH(b.worked)} de ${fmtH(b.expected)} esperadas`;
+                            },
+                            footer: () => inicioMes ? `Saldo vindo dos meses anteriores: ${fmtSigned(inicioMes)}` : '',
+                        },
+                    },
+                },
+            },
+        });
     }
 
     function destroyCharts() {
         state.charts.trend?.destroy();
         state.charts.dist?.destroy();
-        state.charts = { trend: null, dist: null };
+        state.charts.bank?.destroy();
+        state.charts = { trend: null, dist: null, bank: null };
     }
 
     // ------------------------------------------------------------ Relatório
@@ -775,6 +1054,11 @@
         }
 
         lines.push(`✅ [TASKS] — total ${fmtH(totalHours(r.tasks))}`, ...taskLines(r));
+        if ($('rep-hours').checked) {
+            const b = dayBalance(sel);
+            lines.push('', '⏱️ [HORAS]', `Lançado ${fmtH(b.worked)} de ${fmtH(b.expected)} esperadas${b.counted ? ' → ' + saldoText(b) : ''}`);
+            lines.push(`Banco de horas: ${fmtSigned(bankUntil(sel))}`);
+        }
         lines.push('', '📝 [NOTAS]', r.comments.trim() || 'Nenhuma nota.');
         if ($('rep-global').checked) lines.push('', '⏳ [ANOTAÇÕES GLOBAIS]', state.profile.queue.trim() || 'Vazio.');
         return lines.join('\n');
@@ -852,7 +1136,7 @@
         setStatus('saving', 'IMPORTANDO…');
         for (let i = 0; i < entries.length; i += 400) {
             const batch = writeBatch(db);
-            entries.slice(i, i + 400).forEach(([k, r]) => batch.set(doc(reportsCol(), k), { ...r, updatedAt: serverTimestamp() }));
+            entries.slice(i, i + 400).forEach(([k, r]) => batch.set(doc(reportsCol(), k), reportDoc(r)));
             await batch.commit();
         }
         entries.forEach(([k, r]) => { state.reports[k] = r; state.loaded.add(k); });
@@ -1024,7 +1308,7 @@
         clearTimeout(state.chartTimer);
         destroyCharts();
         Object.assign(state, {
-            user: null, reports: {}, loaded: new Set(), profile: emptyProfile(),
+            user: null, reports: {}, loaded: new Set(), allLoaded: false, profile: emptyProfile(),
             dirtyDates: new Set(), profileDirty: false, saving: null, saveTimer: null, retryTimer: null, chartTimer: null,
         });
         $('render-area').replaceChildren();
@@ -1054,6 +1338,12 @@
             toast('Não consegui carregar seu perfil: ' + (e.code || e.message), 'danger');
         }
         fillProfileFields();
+        try {
+            await loadAllReports();
+        } catch (e) {
+            console.error(e);
+            toast('Não consegui carregar o histórico (banco de horas pode ficar incompleto): ' + (e.code || e.message), 'warning');
+        }
         await goToDate(state.selected);
         checkLegacy();
     }
@@ -1078,14 +1368,19 @@
         $('btn-report').addEventListener('click', openReport);
         $('rep-prev').addEventListener('change', e => { storageSet('mydaily_rep_prev', e.target.checked ? '1' : '0'); $('base-report-text').value = buildReport(); });
         $('rep-global').addEventListener('change', e => { storageSet('mydaily_rep_global', e.target.checked ? '1' : '0'); $('base-report-text').value = buildReport(); });
+        $('rep-hours').addEventListener('change', e => { storageSet('mydaily_rep_hours', e.target.checked ? '1' : '0'); $('base-report-text').value = buildReport(); });
         $('rep-prev').checked = storageGet('mydaily_rep_prev') === '1';
         $('rep-global').checked = storageGet('mydaily_rep_global') !== '0';
+        $('rep-hours').checked = storageGet('mydaily_rep_hours') !== '0';
         $('btn-copy').addEventListener('click', copyReport);
 
-        $('queue-field').addEventListener('input', e => { state.profile.queue = e.target.value; markProfileDirty(); });
-        $('notebook-field').addEventListener('input', e => { state.profile.notebook = e.target.value; markProfileDirty(); });
+        $('queue-field').addEventListener('input', e => { state.profile.queue = e.target.value; autosize(e.target); markProfileDirty(); });
+        $('notebook-field').addEventListener('input', e => { state.profile.notebook = e.target.value; autosize(e.target); markProfileDirty(); });
 
         $('tab-charts-btn').addEventListener('shown.bs.tab', updateCharts);
+        document.querySelectorAll('#mainTabs [data-bs-toggle="tab"]').forEach(b => b.addEventListener('shown.bs.tab', autosizeAll));
+        let resizeTimer;
+        window.addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(autosizeAll, 150); });
 
         $('btn-settings').addEventListener('click', () => {
             $('set-meta').value = state.profile.settings.metaHoras;
