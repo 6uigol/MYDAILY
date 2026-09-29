@@ -136,8 +136,11 @@
         .chip-btn { flex: 0 0 auto; font-size: .75rem; font-weight: 700; color: var(--accent); background: rgba(61,90,254,.1); border: 1px solid rgba(61,90,254,.4); border-radius: 8px; padding: 2px 8px; opacity: 0; transition: opacity .15s; }
         .list-item:hover .chip-btn, .chip-btn:focus { opacity: 1; }
         .chip-btn.added { color: var(--save-green); border-color: rgba(0,255,65,.4); background: rgba(0,255,65,.08); opacity: 1; }
-        .list-add { display: flex; align-items: center; gap: 10px; margin-top: 10px; padding: 8px 16px; border: 1px dashed rgba(255,145,0,.35); border-radius: 12px; color: var(--queue-color); }
-        .list-new-input { flex: 1; background: transparent; border: none; outline: none; color: #fff; font-family: 'Fira Code', monospace; }
+        .list-add { display: flex; align-items: center; gap: 10px; margin-top: 10px; padding: 0 16px; border: 1px dashed rgba(255,145,0,.35); border-radius: 12px; color: var(--queue-color); transition: .15s; }
+        .list-add:hover { border-color: rgba(255,145,0,.7); background: rgba(255,145,0,.04); }
+        .list-add:focus-within { border-style: solid; border-color: var(--queue-color); background: rgba(255,145,0,.06); box-shadow: 0 0 0 3px rgba(255,145,0,.12); }
+        .list-new-input { flex: 1; min-width: 0; align-self: stretch; padding: 12px 0; background: transparent; border: none; outline: none; color: #fff; font-family: 'Fira Code', monospace; }
+        .list-new-input::placeholder { color: rgba(255,255,255,.35); }
         @media (hover: none) { .chip-btn { opacity: 1; } }
 
         textarea.form-control.notebook-area {
@@ -358,10 +361,10 @@
                             <button type="button" class="btn btn-sm btn-outline-secondary" id="list-clear-done"><i class="bi bi-trash3 me-1"></i>Limpar concluídos</button>
                         </div>
                         <div id="queue-list" class="smart-list"></div>
-                        <div class="list-add">
+                        <label class="list-add" for="list-new">
                             <i class="bi bi-plus-lg"></i>
-                            <input type="text" id="list-new" class="list-new-input" placeholder="Novo item — Enter para adicionar (numera sozinho seguindo o último item)">
-                        </div>
+                            <input type="text" id="list-new" class="list-new-input" enterkeyhint="enter" autocomplete="off" placeholder="Novo item — Enter para adicionar (numera sozinho seguindo o último item)">
+                        </label>
                         <div class="small text-secondary mt-2">
                             Clique no texto para editar · <b>Enter</b> cria o próximo item · <b>Backspace</b> em item vazio apaga ·
                             marcar um item marca os subitens · <b>→ dia</b> manda a task para o dia selecionado
