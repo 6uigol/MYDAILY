@@ -1865,16 +1865,30 @@
             const it = items[j];
             if (it.num && it.level === level && matchesParent(it.num)) siblings.push(j);
         }
-        const replacements = siblings.map((idx, order) => ({ oldNum: items[idx].num, newNum: parentPath ? `${parentPath}.${order + 1}` : String(order + 1) }));
-        for (let j = start; j < end; j++) {
-            const it = items[j];
-            if (!it.num) continue;
-            const replacement = replacements.find(({ oldNum }) => it.num === oldNum || it.num.startsWith(oldNum + '.'));
-            if (!replacement || replacement.oldNum === replacement.newNum) continue;
-            it.num = replacement.newNum + it.num.slice(replacement.oldNum.length);
-            lines[j] = formatLine(it);
-        }
+        siblings.forEach((idx, order) => {
+            const oldNum = items[idx].num;
+            const newNum = parentPath ? `${parentPath}.${order + 1}` : String(order + 1);
+            if (oldNum === newNum) return;
+            // Limita cada troca à subárvore deste irmão, mesmo quando há números duplicados.
+            const branchEnd = Math.min(end, subtreeEnd(items, idx));
+            for (let j = idx; j < branchEnd; j++) {
+                const it = items[j];
+                if (!it.num || (it.num !== oldNum && !it.num.startsWith(oldNum + '.'))) continue;
+                it.num = newNum + it.num.slice(oldNum.length);
+                lines[j] = formatLine(it);
+            }
+        });
     }
+
+    function compactSiblingsAt(lines, index) {
+        const items = lines.map(parseLine);
+        const item = items[index];
+        if (!item?.num) return;
+        const parent = parentIdx(items, index);
+        const parentNum = parent >= 0 ? items[parent].num : null;
+        const parentPath = item.num.includes('.') ? item.num.slice(0, item.num.lastIndexOf('.')) : '';
+        compactListSiblings(lines, index, item.level, parentPath, parentNum);
+        }
 
     function subtreeEnd(items, i) {
         let j = i + 1;
@@ -2064,6 +2078,7 @@
                 const kids = childIdx(items, i);
                 const pos = (kids.length ? kids.at(-1) : i) + 1;
                 lines.splice(pos, 0, formatLine({ indent: cur.indent, done: false, num: cur.num ? nextNum(cur.num) : null, bullet: cur.bullet, text: '' }));
+                compactSiblingsAt(lines, pos);
                 // um subitem novo (aberto) reabre o pai que estava concluído
                 const after = lines.map(parseLine);
                 const changed = new Set();
@@ -2240,6 +2255,7 @@
             num: last?.num ? nextNum(last.num) : last?.bullet ? null : '1',
             bullet: !last?.num && last?.bullet ? last.bullet : null,
         }));
+        compactSiblingsAt(lines, lines.length - 1);
         saveLines(lines);
         pendingEdit = lines.length - 1;
         renderList();
