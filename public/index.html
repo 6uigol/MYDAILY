@@ -219,6 +219,9 @@
         .list-ghost i { flex: 0 0 20px; text-align: center; }
         .list-shortcuts { color: var(--muted); font-size: .78rem; line-height: 1.6; margin: 8px 2px 0; }
         .list-shortcuts kbd { color: var(--queue-color); background: rgba(255,145,0,.08); border: 1px solid rgba(255,145,0,.28); border-radius: 5px; padding: 1px 5px; font: inherit; }
+        .annotations-drop-zone { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; margin: 0 0 14px; padding: 10px 14px; border: 1px dashed rgba(255,145,0,.45); border-radius: 12px; color: var(--muted); background: rgba(255,145,0,.035); text-align: center; transition: .15s; }
+        .annotations-drop-zone.drop-ready { border-color: var(--queue-color); background: rgba(255,145,0,.10); color: var(--queue-color); }
+        .annotations-drop-zone.drag-over { border-style: solid; border-width: 2px; transform: scale(1.005); }
         @media (hover: none) { .chip-btn { opacity: 1; } .list-sort-controls { display: flex; } }
 
         textarea.form-control.notebook-area {
@@ -230,6 +233,14 @@
         .notebook-tab { flex: 0 0 auto; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 8px 14px; border: 1px solid var(--border); border-radius: 10px; color: var(--muted); background: transparent; }
         .notebook-tab.active { color: var(--accent); border-color: var(--accent); background: var(--accent-glow); font-weight: 700; }
         .notebook-actions { display: flex; flex: 0 0 auto; gap: 6px; }
+        .history-change-list li { margin: 4px 0; overflow-wrap: anywhere; }
+        .history-change-added { color: var(--save-green); }
+        .history-change-removed { color: var(--danger); }
+        .history-note-compare { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+        .history-note-panel { min-width: 0; padding: 10px; border: 1px solid var(--border); border-radius: 10px; background: rgba(127,127,127,.06); }
+        .history-note-label { color: var(--muted); font-size: .68rem; font-weight: 700; letter-spacing: .08em; margin-bottom: 5px; }
+        .history-note-value { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 240px; overflow: auto; font-size: .84rem; }
+        @media (max-width: 575.98px) { .history-note-compare { grid-template-columns: 1fr; } }
 
         .chart-container { position: relative; height: 340px; width: 100%; }
         .chart-empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: .9rem; pointer-events: none; }
@@ -442,6 +453,10 @@
                             <button type="button" class="btn btn-sm btn-outline-warning" id="queue-mode-list"><i class="bi bi-check2-square me-1"></i>Lista</button>
                             <button type="button" class="btn btn-sm btn-outline-warning" id="queue-mode-text"><i class="bi bi-text-left me-1"></i>Texto</button>
                         </div>
+                    </div>
+
+                    <div id="annotations-drop-zone" class="annotations-drop-zone" data-role="annotations-drop-zone" aria-label="Solte uma task aqui para copiá-la para as anotações">
+                        <i class="bi bi-box-arrow-in-down"></i><span>Arraste uma task para cá para copiá-la nas anotações</span>
                     </div>
 
                     <div id="queue-list-wrap" class="d-none">
@@ -700,6 +715,7 @@
         selected: todayKey(),
         reports: {},            // 'YYYY-MM-DD' -> { tasks: [{desc, hour}], comments }
         savedReports: {},       // última versão carregada/confirmada; origem para histórico e conflito offline
+        historyEvents: new Map(), // ações de mover/reordenar tasks, registradas na próxima gravação
         loaded: new Set(),      // dias já buscados no Firestore
         allLoaded: false,       // todos os dias carregados (banco de horas)
         profile: emptyProfile(),
@@ -989,12 +1005,17 @@
 
         const batch = writeBatch(db);
         const historyVersions = [];
+        const pendingHistoryEvents = new Map(dates.map(k => [k, [...(state.historyEvents.get(k) || [])]]));
         for (const k of dates) {
             const ref = doc(reportsCol(), k);
             const r = cleanReport(state.reports[k]);
             const previous = state.savedReports[k];
-            if (previous && !isEmptyReport(previous)) {
-                historyVersions.push({ date: k, tasks: previous.tasks, comments: previous.comments, folga: previous.folga === true, createdAt: serverTimestamp() });
+            const baseline = cleanReport(previous || { tasks: [], comments: '', folga: false });
+            const events = pendingHistoryEvents.get(k) || [];
+            if (JSON.stringify(baseline) !== JSON.stringify(r) || events.length) {
+                const version = { date: k, tasks: baseline.tasks, comments: baseline.comments, folga: baseline.folga, createdAt: serverTimestamp() };
+                if (events.length) version.events = events;
+                historyVersions.push(version);
             }
             if (isEmptyReport(r)) batch.delete(ref);
             else batch.set(ref, reportDoc(r));
@@ -1014,10 +1035,19 @@
             if (historyVersions.length) {
                 const historyBatch = writeBatch(db);
                 historyVersions.forEach(version => historyBatch.set(doc(historyCol()), version));
-                try { await historyBatch.commit(); }
+                try {
+                    await historyBatch.commit();
+                    pendingHistoryEvents.forEach((sent, date) => {
+                        const remaining = (state.historyEvents.get(date) || []).slice(sent.length);
+                        if (remaining.length) state.historyEvents.set(date, remaining);
+                        else state.historyEvents.delete(date);
+                    });
+                }
                 catch (historyError) {
                     console.warn('Relatório salvo; histórico não foi gravado:', historyError);
                     if (historyError.code === 'permission-denied') toast('Dados salvos. Para ativar o histórico, publique as regras atualizadas de firestore.rules.', 'warning');
+                    pendingHistoryEvents.forEach((sent, date) => { if (sent.length) state.dirtyDates.add(date); });
+                    if (historyError.code !== 'permission-denied' && state.dirtyDates.size) state.retryTimer = setTimeout(flush, 15000);
                 }
             }
             $('last-sync').textContent = 'ÚLTIMO SYNC: ' + new Date().toLocaleTimeString('pt-BR');
@@ -1133,29 +1163,82 @@
     function enableTaskSorting(list) {
         if (!window.Sortable) return;
         window.Sortable.create(list, {
-            group: { name: 'mydaily-day-tasks', pull: true, put: true },
+            group: { name: 'mydaily-day-tasks', pull: to => to.el.dataset.role === 'annotations-drop-zone' ? 'clone' : true, put: true },
             draggable: '.task-row',
             handle: '.task-drag-handle',
             animation: 160,
             delay: 140,
             delayOnTouchOnly: true,
             touchStartThreshold: 5,
-            onStart: () => document.querySelectorAll('.day-card').forEach(card => card.classList.add('task-drop-ready')),
+            onStart: () => {
+                document.querySelectorAll('.day-card').forEach(card => card.classList.add('task-drop-ready'));
+                $('annotations-drop-zone').classList.add('drop-ready');
+            },
             onMove: evt => {
                 document.querySelectorAll('.day-card.task-drop-target').forEach(card => card.classList.remove('task-drop-target'));
+                $('annotations-drop-zone').classList.toggle('drag-over', evt.to.dataset.role === 'annotations-drop-zone');
                 evt.to.closest('.day-card')?.classList.add('task-drop-target');
             },
             onEnd: evt => {
                 document.querySelectorAll('.day-card.task-drop-ready, .day-card.task-drop-target').forEach(card => card.classList.remove('task-drop-ready', 'task-drop-target'));
+                $('annotations-drop-zone').classList.remove('drop-ready', 'drag-over');
+                if (evt.to.dataset.role === 'annotations-drop-zone') return;
                 if (evt.from === evt.to && evt.oldIndex === evt.newIndex) return;
                 const sourceDate = evt.from.dataset.date;
                 const targetDate = evt.to.dataset.date;
+                const moved = { desc: evt.item.querySelector('.t-desc')?.value?.trim() || '', hour: evt.item.querySelector('.t-hour')?.value?.trim() || '' };
+                if (sourceDate === targetDate) {
+                    recordTaskHistoryEvent(sourceDate, { type: 'task-reordered', desc: moved.desc, hour: moved.hour, fromPosition: (evt.oldIndex ?? 0) + 1, toPosition: (evt.newIndex ?? 0) + 1 });
+                } else {
+                    recordTaskHistoryEvent(sourceDate, { type: 'task-moved-out', desc: moved.desc, hour: moved.hour, fromDate: sourceDate, toDate: targetDate });
+                    recordTaskHistoryEvent(targetDate, { type: 'task-moved-in', desc: moved.desc, hour: moved.hour, fromDate: sourceDate, toDate: targetDate });
+                }
                 syncTasks(evt.from, sourceDate);
                 if (evt.to !== evt.from) syncTasks(evt.to, targetDate);
                 renderDays();
                 if (sourceDate !== targetDate) toast(`Task movida de ${fmtBR(sourceDate)} para ${fmtBR(targetDate)}.`, 'success');
             },
         });
+    }
+
+    function recordTaskHistoryEvent(date, event) {
+        const events = state.historyEvents.get(date) || [];
+        events.push({ ...event, occurredAt: new Date().toISOString() });
+        state.historyEvents.set(date, events.slice(-100));
+    }
+
+    function enableAnnotationDropZone() {
+        if (!window.Sortable) return;
+        window.Sortable.create($('annotations-drop-zone'), {
+            group: { name: 'mydaily-annotations', pull: false, put: ['mydaily-day-tasks'] },
+            draggable: '.task-row',
+            emptyInsertThreshold: 48,
+            onAdd: evt => {
+                const task = { desc: evt.item.querySelector('.t-desc')?.value || '', hour: evt.item.querySelector('.t-hour')?.value || '' };
+                evt.item.remove();
+                $('annotations-drop-zone').classList.remove('drop-ready', 'drag-over');
+                addTaskToAnnotations(task);
+            },
+        });
+    }
+
+    function addTaskToAnnotations(task) {
+        const desc = String(task.desc || '').trim();
+        if (!desc) return toast('Essa task está sem descrição e não pode ser copiada.', 'info');
+        const lines = getLines();
+        const last = lines.map(parseLine).filter(item => !item.blank).at(-1);
+        const text = desc + (task.hour.trim() ? ` · ${task.hour.trim()}` : '');
+        lines.push(formatLine({
+            indent: last?.indent || '', done: false, text,
+            num: last?.num ? nextNum(last.num) : last?.bullet ? null : '1',
+            bullet: !last?.num && last?.bullet ? last.bullet : null,
+        }));
+        saveLines(lines);
+        if (queueMode() === 'text') {
+            $('queue-field').value = queueTextForEditor(state.profile.queue);
+            autosize($('queue-field'));
+        } else renderList();
+        toast('Task copiada para as anotações.', 'success');
     }
 
     function addTaskRow(list, k, t = { desc: '', hour: '' }) {
@@ -1314,7 +1397,7 @@
     }
 
     async function openHistory(date) {
-        $('history-date-label').textContent = `Versões salvas anteriormente para ${fmtBR(date)}.`;
+        $('history-date-label').textContent = `Alterações registradas em ${fmtBR(date)}. Cada entrada mostra o que mudou depois daquela versão.`;
         const wrap = $('history-items'); wrap.replaceChildren();
         try {
             const snap = await getDocs(query(historyCol(), where('date', '==', date)));
@@ -1330,22 +1413,115 @@
             }
             if (!versions.length) wrap.append(el('div', 'text-secondary', 'Ainda não há versões anteriores deste dia.'));
             versions.forEach((version, index) => {
-                const row = el('div', 'glass-card p-3 d-flex flex-wrap justify-content-between align-items-center gap-2');
+                const row = el('div', 'glass-card p-3 history-version');
                 const when = version.createdAt?.toDate?.().toLocaleString('pt-BR') || 'Data indisponível';
-                row.append(el('div', 'small', `${when} · ${(version.tasks || []).length} tasks · ${String(version.comments || '').length} caracteres em notas`));
+                const newer = index === 0 ? cleanReport(report(date)) : cleanReport(versions[index - 1]);
+                const changes = describeReportChanges(cleanReport(version), newer);
+                const header = el('div', 'd-flex flex-wrap justify-content-between align-items-center gap-2');
+                header.append(el('div', 'small fw-bold', `Alterações após ${when}`));
                 const restore = el('button', 'btn btn-sm btn-outline-warning', 'Restaurar');
                 restore.type = 'button'; restore.addEventListener('click', async () => {
                     if (!confirm(`Restaurar esta versão de ${fmtBR(date)}? A versão atual será preservada no histórico.`)) return;
                     state.reports[date] = cleanReport(version); state.dirtyDates.add(date); await flush();
                     bootstrap.Modal.getOrCreateInstance($('historyModal')).hide(); renderDays(); toast('Versão restaurada.', 'success');
                 });
-                row.append(restore); wrap.append(row);
+                header.append(restore);
+                row.append(header, renderReportChanges(changes, version.events || []));
+                wrap.append(row);
             });
             bootstrap.Modal.getOrCreateInstance($('historyModal')).show();
         } catch (e) {
             console.error(e);
             toast(e.code === 'permission-denied' ? 'Acesso ao histórico bloqueado pelas regras do Firestore. Publique as regras atualizadas do projeto.' : 'Não consegui abrir o histórico: ' + (e.code || e.message), 'danger');
         }
+    }
+
+    function describeReportChanges(previous, next) {
+        const changes = [];
+        const before = previous.tasks.map(task => ({ desc: task.desc.trim(), hour: task.hour.trim(), matched: false }));
+        const after = next.tasks.map(task => ({ desc: task.desc.trim(), hour: task.hour.trim(), matched: false }));
+        const pair = (a, b) => {
+            before[a].matched = true; before[a].matchedTo = b;
+            after[b].matched = true; after[b].matchedFrom = a;
+            return [before[a], after[b]];
+        };
+
+        // First match identical tasks so moving/reordering rows isn't reported as an edit.
+        before.forEach((task, i) => {
+            const match = after.findIndex(candidate => !candidate.matched && candidate.desc === task.desc && candidate.hour === task.hour);
+            if (match >= 0) pair(i, match);
+        });
+        // Same description means the remaining difference is in the hours field.
+        before.forEach((task, i) => {
+            if (task.matched) return;
+            const candidates = after.map((candidate, j) => ({ candidate, j })).filter(x => !x.candidate.matched && x.candidate.desc === task.desc);
+            if (candidates.length === 1) {
+                const [oldTask, newTask] = pair(i, candidates[0].j);
+                changes.push({ type: 'task', text: `Horas de “${oldTask.desc || 'task sem descrição'}”: ${oldTask.hour || 'sem horas'} → ${newTask.hour || 'sem horas'}` });
+            }
+        });
+        // A unique equal hour value is a safe signal that a task description changed.
+        before.forEach((task, i) => {
+            if (task.matched || !task.hour) return;
+            const oldCandidates = before.filter(candidate => !candidate.matched && candidate.hour === task.hour);
+            const newCandidates = after.map((candidate, j) => ({ candidate, j })).filter(x => !x.candidate.matched && x.candidate.hour === task.hour);
+            if (oldCandidates.length === 1 && newCandidates.length === 1) {
+                const [oldTask, newTask] = pair(i, newCandidates[0].j);
+                changes.push({ type: 'task', text: `Descrição alterada: “${oldTask.desc || 'sem descrição'}” → “${newTask.desc || 'sem descrição'}” (${task.hour || 'sem horas'})` });
+            }
+        });
+        before.forEach(task => { if (!task.matched) changes.push({ type: 'removed', text: `Task removida: “${task.desc || 'sem descrição'}” · ${task.hour || 'sem horas'}` }); });
+        after.forEach(task => { if (!task.matched) changes.push({ type: 'added', text: `Task adicionada: “${task.desc || 'sem descrição'}” · ${task.hour || 'sem horas'}` }); });
+        const paired = before.map((task, index) => ({ task, index })).filter(item => item.task.matched);
+        const positions = paired.map(item => item.task.matchedTo);
+        if (positions.some((position, index) => index > 0 && position < positions[index - 1])) {
+            const beforeOrder = paired.map(item => item.task.desc || 'sem descrição').join(' → ');
+            const afterOrder = [...paired].sort((a, b) => a.task.matchedTo - b.task.matchedTo).map(item => item.task.desc || 'sem descrição').join(' → ');
+            changes.push({ type: 'reorder', text: `Ordem alterada: ${beforeOrder} → ${afterOrder}` });
+        }
+        if (previous.comments !== next.comments) changes.push({ type: 'notes', before: previous.comments, after: next.comments });
+        if (previous.folga !== next.folga) changes.push({ type: 'task', text: `Folga: ${previous.folga ? 'marcada' : 'desmarcada'} → ${next.folga ? 'marcada' : 'desmarcada'}` });
+        return changes;
+    }
+
+    function renderReportChanges(changes, events = []) {
+        const section = el('div', 'history-changes mt-3');
+        if (!changes.length && !events.length) {
+            section.append(el('div', 'small text-secondary', 'Nenhuma diferença em tasks, horas ou comentários nesta comparação.'));
+            return section;
+        }
+        const list = el('ul', 'small mb-0 ps-3 history-change-list');
+        const movedOut = events.filter(event => event.type === 'task-moved-out');
+        const movedIn = events.filter(event => event.type === 'task-moved-in');
+        events.forEach(event => {
+            const details = `${event.desc || 'sem descrição'}${event.hour ? ` · ${event.hour}` : ''}`;
+            if (event.type === 'task-moved-out') list.append(el('li', 'history-change-removed', `Saiu deste dia e foi para ${fmtBR(event.toDate)}: “${details}”`));
+            else if (event.type === 'task-moved-in') list.append(el('li', 'history-change-added', `Entrou neste dia vinda de ${fmtBR(event.fromDate)}: “${details}”`));
+            else if (event.type === 'task-reordered') list.append(el('li', 'history-change-reorder', `Ordem alterada: “${details}” saiu da posição ${event.fromPosition} e foi para a posição ${event.toPosition}.`));
+        });
+        changes.filter(change => change.type !== 'notes').filter(change => {
+            const task = change.text?.match(/^Task (removida|adicionada): “(.*)” · (.*)$/);
+            if (!task) return true;
+            const records = task[1] === 'removida' ? movedOut : movedIn;
+            return !records.some(event => event.desc === task[2] && (event.hour || 'sem horas') === task[3]);
+        }).forEach(change => {
+            const item = el('li', 'history-change-' + change.type, change.text);
+            list.append(item);
+        });
+        section.append(list);
+        changes.filter(change => change.type === 'notes').forEach(change => {
+            const details = el('details', 'history-note-diff mt-2');
+            details.append(el('summary', 'small fw-bold', 'Comentários / notas alterados'));
+            const compare = el('div', 'history-note-compare mt-2');
+            const oldPanel = el('div', 'history-note-panel');
+            oldPanel.append(el('div', 'history-note-label', 'ANTES'), el('div', 'history-note-value', change.before || 'Sem conteúdo'));
+            const newPanel = el('div', 'history-note-panel');
+            newPanel.append(el('div', 'history-note-label', 'DEPOIS'), el('div', 'history-note-value', change.after || 'Sem conteúdo'));
+            compare.append(oldPanel, newPanel);
+            details.append(compare);
+            section.append(details);
+        });
+        return section;
     }
 
     function fillProfileFields() {
@@ -2792,7 +2968,7 @@
         destroyCharts();
         state.remoteUnsubscribe?.();
         Object.assign(state, {
-            user: null, reports: {}, savedReports: {}, loaded: new Set(), allLoaded: false, profile: emptyProfile(), remoteUnsubscribe: null, conflicts: new Set(), remoteReports: new Map(),
+            user: null, reports: {}, savedReports: {}, historyEvents: new Map(), loaded: new Set(), allLoaded: false, profile: emptyProfile(), remoteUnsubscribe: null, conflicts: new Set(), remoteReports: new Map(),
             dirtyDates: new Set(), profileDirty: false, saving: null, saveTimer: null, retryTimer: null, chartTimer: null,
         });
         $('render-area').replaceChildren();
@@ -2870,6 +3046,7 @@
         $('queue-field').addEventListener('input', e => { state.profile.queue = mergeQueueEditorText(state.profile.queue, e.target.value); autosize(e.target); markProfileDirty(); });
         $('queue-mode-list').addEventListener('click', () => setQueueMode('list'));
         $('queue-mode-text').addEventListener('click', () => setQueueMode('text'));
+        enableAnnotationDropZone();
         $('list-search').addEventListener('input', renderList);
         $('task-hours-filter').value = storageGet('mydaily_task_hours_filter') || 'all';
         $('task-hours-filter').addEventListener('change', e => { storageSet('mydaily_task_hours_filter', e.target.value); renderDays(); });

@@ -32,12 +32,14 @@ service cloud.firestore {
       match /history/{versionId} {
         allow read, delete: if isOwner(uid);
         allow create: if isOwner(uid)
-          && request.resource.data.keys().hasOnly(['date', 'tasks', 'comments', 'folga', 'createdAt'])
+          && request.resource.data.keys().hasOnly(['date', 'tasks', 'comments', 'folga', 'createdAt', 'events'])
           && request.resource.data.date.matches('[0-9]{4}-[0-9]{2}-[0-9]{2}')
           && request.resource.data.tasks is list
           && request.resource.data.tasks.size() <= 300
           && request.resource.data.comments is string
-          && request.resource.data.folga is bool;
+          && request.resource.data.folga is bool
+          && request.resource.data.get('events', []) is list
+          && request.resource.data.get('events', []).size() <= 100;
         allow update: if false;
       }
     }
