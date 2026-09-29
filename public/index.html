@@ -1504,19 +1504,26 @@
             button.type = 'button';
             button.setAttribute('role', 'tab');
             button.setAttribute('aria-selected', String(tab.id === notebook.activeId));
+            button.dataset.notebookId = tab.id;
             button.title = tab.name;
-            button.addEventListener('click', () => {
-                if (notebook.activeId === tab.id) return;
-                notebook.activeId = tab.id;
-                $('notebook-field').value = tab.content;
-                markProfileDirty();
-                renderNotebookTabs();
-                autosize($('notebook-field'));
-            });
             tabs.append(button);
         });
         $('notebook-field').value = activeNotebookTab().content;
         $('notebook-delete').disabled = notebook.tabs.length <= 1;
+    }
+    function switchNotebookTab(id) {
+        const notebook = state.profile.notebook = normalizeNotebook(state.profile.notebook);
+        const tab = notebook.tabs.find(item => item.id === id);
+        if (!tab || notebook.activeId === tab.id) return;
+        notebook.activeId = tab.id;
+        $('notebook-field').value = tab.content;
+        $('notebook-tabs').querySelectorAll('.notebook-tab').forEach(button => {
+            const active = button.dataset.notebookId === tab.id;
+            button.classList.toggle('active', active);
+            button.setAttribute('aria-selected', String(active));
+        });
+        markProfileDirty();
+        autosize($('notebook-field'));
     }
     function addNotebookTab() {
         const notebook = state.profile.notebook;
@@ -3090,6 +3097,10 @@
             tab.content = e.target.value;
             autosize(e.target);
             markProfileDirty();
+        });
+        $('notebook-tabs').addEventListener('click', e => {
+            const button = e.target.closest('.notebook-tab[data-notebook-id]');
+            if (button) switchNotebookTab(button.dataset.notebookId);
         });
         $('notebook-add').addEventListener('click', addNotebookTab);
         $('notebook-rename').addEventListener('click', renameNotebookTab);
