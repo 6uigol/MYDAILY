@@ -1847,13 +1847,15 @@
             start = Math.min(anchor, items.length - 1);
             while (start > 0) {
                 const it = items[start - 1];
-                if (it.blank || (it.num && it.level === 0)) start--;
+                // Inclui as linhas numeradas descendentes do item principal anterior.
+                if (it.blank || it.num) start--;
                 else break;
             }
             end = Math.min(anchor, items.length);
             while (end < items.length) {
                 const it = items[end];
-                if (it.blank || (it.num && it.level === 0)) end++;
+                // Inclui a subárvore de cada item principal para atualizar seus prefixos.
+                if (it.blank || it.num) end++;
                 else break;
             }
         }
