@@ -29,6 +29,17 @@
             --danger: #ff4d6d;
             --muted: #8a8f98;
         }
+        html[data-bs-theme="light"] {
+            --bg: #edf2f8; --glass: rgba(255,255,255,.96); --border: rgba(35,55,80,.14);
+            --accent: #3155d9; --accent-glow: rgba(49,85,217,.22); --terminal: #087f8c;
+            --queue-color: #a65300; --save-green: #16803a; --danger: #c83350; --muted: #566274;
+        }
+        html[data-bs-theme="light"] body { color: #1f2937; background-image: linear-gradient(rgba(49,85,217,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(49,85,217,.035) 1px, transparent 1px); }
+        html[data-bs-theme="light"] .form-control, html[data-bs-theme="light"] .form-control:focus { background-color: #fff; color: #183044; }
+        html[data-bs-theme="light"] .date-pill input { color: #1f2937; color-scheme: light; }
+        html[data-bs-theme="light"] .status-bar { background: #fff; }
+        html[data-bs-theme="light"] .modal-content.glass-card, html[data-bs-theme="light"] .dropdown-menu { background: #fff; color: #1f2937; }
+        html[data-bs-theme="light"] .smart-list { background: rgba(255,255,255,.8); }
 
         body {
             background-color: var(--bg);
@@ -136,10 +147,24 @@
         .chip-btn { flex: 0 0 auto; font-size: .75rem; font-weight: 700; color: var(--accent); background: rgba(61,90,254,.1); border: 1px solid rgba(61,90,254,.4); border-radius: 8px; padding: 2px 8px; opacity: 0; transition: opacity .15s; }
         .list-item:hover .chip-btn, .chip-btn:focus { opacity: 1; }
         .chip-btn.added { color: var(--save-green); border-color: rgba(0,255,65,.4); background: rgba(0,255,65,.08); opacity: 1; }
+        .list-level-btn { flex: 0 0 30px; width: 30px; height: 30px; padding: 0; border: 1px solid rgba(255,145,0,.22); border-radius: 8px; color: var(--queue-color); background: rgba(255,145,0,.06); opacity: .72; }
+        .list-level-btn:hover, .list-level-btn:focus { opacity: 1; border-color: var(--queue-color); background: rgba(255,145,0,.14); }
+        .list-meta-btn { flex: 0 0 auto; min-height: 30px; padding: 3px 7px; border: 1px solid var(--border); border-radius: 8px; color: var(--muted); background: rgba(255,255,255,.035); font-size: .72rem; }
+        .priority-high { color: #ff5a70; border-color: rgba(255,90,112,.5); }
+        .priority-medium { color: #ffb74d; border-color: rgba(255,183,77,.45); }
+        .priority-low { color: #73d8c2; border-color: rgba(115,216,194,.4); }
+        .list-tag { display: inline-flex; align-items: center; color: #c7b4ff; background: rgba(142,36,170,.18); border: 1px solid rgba(179,136,255,.26); border-radius: 99px; padding: 2px 7px; font-size: .7rem; }
+        .list-item.dragging { opacity: .38; }
+        .list-item.drop-target { box-shadow: inset 0 2px var(--terminal); }
+        .list-sort-controls { display: none; gap: 3px; flex: 0 0 auto; }
+        .list-sort-controls button { width: 28px; height: 30px; padding: 0; border: 1px solid var(--border); border-radius: 7px; color: var(--muted); background: transparent; }
+        .list-sort-controls button:hover { color: var(--terminal); border-color: var(--terminal); }
         .list-ghost { color: rgba(255,145,0,.55); font-family: 'Fira Code', monospace; font-size: .95rem; margin-top: 4px; }
         .list-ghost:hover { color: var(--queue-color); background: rgba(255,145,0,.05); }
         .list-ghost i { flex: 0 0 20px; text-align: center; }
-        @media (hover: none) { .chip-btn { opacity: 1; } }
+        .list-shortcuts { color: var(--muted); font-size: .78rem; line-height: 1.6; margin: 8px 2px 0; }
+        .list-shortcuts kbd { color: var(--queue-color); background: rgba(255,145,0,.08); border: 1px solid rgba(255,145,0,.28); border-radius: 5px; padding: 1px 5px; font: inherit; }
+        @media (hover: none) { .chip-btn { opacity: 1; } .list-sort-controls { display: flex; } }
 
         textarea.form-control.notebook-area {
             min-height: calc(100vh - 260px); padding: 28px !important; border-left: 8px solid var(--accent) !important;
@@ -338,6 +363,12 @@
 
         <div class="tab-content">
             <div class="tab-pane fade show active" id="tab-logs">
+                <div class="d-flex justify-content-end align-items-center gap-2 mb-2 small text-secondary">
+                    <label for="task-hours-filter">Filtrar tasks:</label>
+                    <select id="task-hours-filter" class="form-select form-select-sm" style="width:auto">
+                        <option value="all">Todas</option><option value="with">Com horas</option><option value="without">Sem horas</option>
+                    </select>
+                </div>
                 <div class="row g-4 mb-4" id="render-area"></div>
                 <div class="glass-card p-4 p-md-5 text-warning">
                     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
@@ -350,6 +381,10 @@
 
                     <div id="queue-list-wrap" class="d-none">
                         <div class="list-toolbar">
+                            <input id="list-search" class="form-control form-control-sm" type="search" placeholder="Buscar nas anotações…" aria-label="Buscar nas anotações" style="max-width:260px">
+                            <select id="list-filter" class="form-select form-select-sm" aria-label="Filtrar anotações" style="width:auto">
+                                <option value="all">Todos os itens</option><option value="open">Pendentes</option><option value="done">Concluídos</option>
+                            </select>
                             <div class="list-progress"><div class="list-progress-bar" id="list-progress-bar"></div></div>
                             <span class="list-progress-txt" id="list-progress-txt">0 de 0</span>
                             <div class="form-check form-switch mb-0 small">
@@ -359,6 +394,7 @@
                             <button type="button" class="btn btn-sm btn-outline-secondary" id="list-clear-done"><i class="bi bi-trash3 me-1"></i>Limpar concluídos</button>
                         </div>
                         <div id="queue-list" class="smart-list" title="Clique no texto para editar · Enter cria o próximo item · Backspace em item vazio apaga · marcar um item marca os subitens · → dia manda a task para o dia selecionado"></div>
+                        <div class="list-shortcuts"><kbd>Tab</kbd> tornar filho do item anterior · <kbd>Shift</kbd> + <kbd>Tab</kbd> promover um nível · <kbd>Enter</kbd> criar próximo item no mesmo nível</div>
                     </div>
 
                     <textarea id="queue-field" class="form-control queue-area" placeholder="Escreva suas anotações aqui... Use 1 -, 1.1 -, - ou [x] no começo da linha para virar lista."></textarea>
@@ -375,6 +411,17 @@
                 <div class="row g-4 mb-4">
                     <div class="col-lg-8"><div class="glass-card p-4"><h5 class="fw-bold mb-4" style="color:var(--accent)" id="trend-title">HORAS POR TAREFA — ÚLTIMOS 7 DIAS</h5><div class="chart-container" style="height:420px"><canvas id="mainTrendChart"></canvas><div class="chart-empty d-none" id="trend-empty">Sem horas lançadas nesses dias</div></div></div></div>
                     <div class="col-lg-4"><div class="glass-card p-4"><h5 class="fw-bold mb-4" style="color:var(--terminal)">DISTRIBUIÇÃO DO DIA</h5><div class="chart-container" style="height:420px"><canvas id="taskDistributionChart"></canvas><div class="chart-empty d-none" id="dist-empty">Sem horas lançadas neste dia</div></div></div></div>
+                </div>
+                <div class="glass-card p-4 mb-4" id="period-summary">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                        <h5 class="fw-bold mb-0" style="color:var(--terminal)">RESUMO E COMPARAÇÃO SEMANAL</h5>
+                        <div class="d-flex flex-wrap gap-2">
+                            <button class="btn btn-sm btn-outline-info" id="export-csv">CSV</button>
+                            <button class="btn btn-sm btn-outline-info" id="export-xls">Excel</button>
+                            <button class="btn btn-sm btn-outline-info" id="export-pdf">PDF / Imprimir</button>
+                        </div>
+                    </div>
+                    <div id="period-summary-text" class="small text-secondary">Carregando resumo…</div>
                 </div>
                 <div class="glass-card p-4 mb-4 d-none" id="bank-card">
                     <div class="d-flex flex-wrap justify-content-between align-items-baseline gap-2 mb-4">
@@ -400,7 +447,7 @@
         </div>
     </div>
 
-    <div class="status-bar">
+    <div class="status-bar" id="status-bar">
         <div><span id="status-dot" class="dot"></span><span id="status-text">PRONTO</span></div>
         <div class="hide-sm text-truncate" id="status-user"></div>
         <div id="last-sync">ÚLTIMO SYNC: --:--:--</div>
@@ -450,6 +497,15 @@
                     <input class="form-check-input" type="checkbox" id="set-bank">
                     <label class="form-check-label" for="set-bank">Usar banco de horas (acumula extra e o que faltou entre os dias)</label>
                 </div>
+                <hr class="border-secondary my-4">
+                <label class="form-label small text-secondary" for="set-theme">Tema</label>
+                <select id="set-theme" class="form-select mb-3"><option value="dark">Escuro</option><option value="light">Claro</option><option value="system">Seguir dispositivo</option></select>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="set-reminder">
+                    <label class="form-check-label" for="set-reminder">Lembrete diário (enquanto o app estiver aberto)</label>
+                </div>
+                <label class="form-label small text-secondary mt-2" for="set-reminder-time">Horário do lembrete</label>
+                <input type="time" id="set-reminder-time" class="form-control">
                 <div class="small text-secondary mt-3">
                     A meta é o esperado por dia útil. O que passar dela no dia aparece como <b style="color:var(--save-green)">hora extra</b>
                     (cada dia é visto sozinho, não acumula); abaixo dela, o dia mostra quantas horas faltam.
@@ -462,6 +518,13 @@
             </div>
         </form>
     </div>
+</div>
+
+<div class="modal fade" id="historyModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-fullscreen-sm-down"><div class="modal-content glass-card">
+        <div class="modal-header border-0"><h5 class="modal-title">HISTÓRICO DE ALTERAÇÕES</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body"><div class="small text-secondary mb-3" id="history-date-label"></div><div id="history-items" class="d-grid gap-2"></div></div>
+    </div></div>
 </div>
 
 <input type="file" id="import-file" accept=".json,.txt,application/json,text/plain" hidden>
@@ -490,10 +553,10 @@
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import {
         initializeFirestore, getFirestore, persistentLocalCache, persistentMultipleTabManager,
-        doc, getDoc, getDocs, collection, query, where, documentId, writeBatch, serverTimestamp
+        doc, getDoc, getDocs, collection, query, where, documentId, writeBatch, serverTimestamp, onSnapshot
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    const DEFAULT_SETTINGS = { metaHoras: 8, pularFimDeSemana: true, usaBancoHoras: false };
+    const DEFAULT_SETTINGS = { metaHoras: 8, pularFimDeSemana: true, usaBancoHoras: false, theme: 'dark', reminderEnabled: false, reminderTime: '09:00' };
     const SAVE_DELAY_MS = 1500;
     const PROFILE_MAX_CHARS = 900000; // documento do Firestore tem limite de 1 MB
     const CHART_COLORS = ['#00f2ff', '#3d5afe', '#8e24aa', '#ff9100', '#00ff41', '#ff4d6d', '#ffd60a', '#4cc9f0', '#b388ff', '#80ffdb'];
@@ -519,6 +582,7 @@
         user: null,
         selected: todayKey(),
         reports: {},            // 'YYYY-MM-DD' -> { tasks: [{desc, hour}], comments }
+        savedReports: {},       // última versão carregada/confirmada; origem para histórico e conflito offline
         loaded: new Set(),      // dias já buscados no Firestore
         allLoaded: false,       // todos os dias carregados (banco de horas)
         profile: emptyProfile(),
@@ -529,10 +593,43 @@
         retryTimer: null,
         chartTimer: null,
         nav: 0,
+        remoteUnsubscribe: null,
+        conflicts: new Set(),
+        remoteReports: new Map(),
         charts: { trend: null, dist: null, extra: null, bank: null },
     };
 
     function emptyProfile() { return { queue: '', notebook: '', settings: { ...DEFAULT_SETTINGS } }; }
+
+    function applyTheme(theme = 'dark') {
+        const systemLight = window.matchMedia?.('(prefers-color-scheme: light)').matches;
+        const effective = theme === 'system' ? (systemLight ? 'light' : 'dark') : theme;
+        document.documentElement.setAttribute('data-bs-theme', effective);
+        document.querySelector('meta[name="theme-color"]')?.setAttribute('content', effective === 'light' ? '#edf2f8' : '#030303');
+    }
+    let reminderTimer = null;
+    async function requestReminderPermission() {
+        if (!('Notification' in window)) { toast('Este navegador não oferece notificações.', 'warning'); $('set-reminder').checked = false; return; }
+        if (Notification.permission === 'default') {
+            const permission = await Notification.requestPermission();
+            if (permission !== 'granted') { $('set-reminder').checked = false; toast('Permita notificações no navegador para ativar o lembrete.', 'warning'); }
+        } else if (Notification.permission !== 'granted') { $('set-reminder').checked = false; toast('Ative notificações nas configurações do navegador.', 'warning'); }
+    }
+    function checkReminder() {
+        if (!state.user || !state.profile.settings.reminderEnabled) return;
+        if (!('Notification' in window) || Notification.permission !== 'granted') return;
+        const now = new Date();
+        if (`${pad(now.getHours())}:${pad(now.getMinutes())}` !== (state.profile.settings.reminderTime || '09:00')) return;
+        const key = 'mydaily_reminder_' + state.user.uid + '_' + todayKey();
+        if (storageGet(key)) return;
+        storageSet(key, '1');
+        new Notification('MYDAILY', { body: 'Lembrete: registre as tasks e horas de hoje.', tag: 'mydaily-daily-reminder' });
+    }
+    function configureReminder() {
+        clearInterval(reminderTimer);
+        reminderTimer = setInterval(checkReminder, 30000);
+        checkReminder();
+    }
 
     // ------------------------------------------------------------ Datas (sempre em horário local)
     function pad(n) { return String(n).padStart(2, '0'); }
@@ -652,6 +749,8 @@
 
     const reportsCol = () => collection(db, 'users', state.user.uid, 'reports');
     const userRef = () => doc(db, 'users', state.user.uid);
+    const historyCol = () => collection(db, 'users', state.user.uid, 'history');
+    const cloneReport = r => JSON.parse(JSON.stringify(cleanReport(r)));
 
     async function loadProfile() {
         const snap = await getDoc(userRef());
@@ -666,8 +765,27 @@
     // Carrega todos os dias de uma vez no login (necessário para o banco de horas)
     async function loadAllReports() {
         const snap = await getDocs(reportsCol());
-        snap.forEach(d => { if (isDateKey(d.id) && !state.dirtyDates.has(d.id)) state.reports[d.id] = cleanReport(d.data()); });
+        snap.forEach(d => { if (isDateKey(d.id) && !state.dirtyDates.has(d.id)) { state.reports[d.id] = cleanReport(d.data()); state.savedReports[d.id] = cloneReport(d.data()); } });
         state.allLoaded = true;
+    }
+    function watchRemoteReports() {
+        state.remoteUnsubscribe?.();
+        state.remoteUnsubscribe = onSnapshot(reportsCol(), snap => {
+            let changed = false;
+            snap.docChanges().forEach(change => {
+                const k = change.doc.id;
+                if (!isDateKey(k)) return;
+                const incoming = change.type === 'removed' ? null : cleanReport(change.doc.data());
+                const current = state.reports[k];
+                const same = incoming && current && JSON.stringify(incoming) === JSON.stringify(cleanReport(current));
+                if (same) return;
+                if (state.dirtyDates.has(k)) { state.conflicts.add(k); state.remoteReports.set(k, incoming); changed = true; return; }
+                if (!incoming) { delete state.reports[k]; delete state.savedReports[k]; }
+                else { state.reports[k] = incoming; state.savedReports[k] = cloneReport(incoming); }
+                changed = true;
+            });
+            if (changed) { renderDays(); if (chartsVisible()) updateCharts(); refreshStatus(); }
+        }, error => { console.warn('Sincronização em tempo real indisponível:', error); });
     }
 
     async function ensureRange(fromK, toK) {
@@ -676,7 +794,7 @@
         for (let k = fromK; k <= toK; k = addDays(k, 1)) keys.push(k);
         if (keys.every(k => state.loaded.has(k))) return;
         const snap = await getDocs(query(reportsCol(), where(documentId(), '>=', fromK), where(documentId(), '<=', toK)));
-        snap.forEach(d => { if (!state.dirtyDates.has(d.id)) state.reports[d.id] = cleanReport(d.data()); });
+        snap.forEach(d => { if (!state.dirtyDates.has(d.id)) { state.reports[d.id] = cleanReport(d.data()); state.savedReports[d.id] = cloneReport(d.data()); } });
         keys.forEach(k => state.loaded.add(k));
     }
 
@@ -711,6 +829,11 @@
         }
 
         const dates = [...state.dirtyDates];
+        const blockedDates = dates.filter(date => state.conflicts.has(date));
+        if (blockedDates.length) {
+            setStatus('error', 'CONFLITO DE SINCRONIZAÇÃO — ESCOLHA RECARREGAR A VERSÃO DA NUVEM ANTES DE SALVAR');
+            return false;
+        }
         const profileDirty = state.profileDirty;
         state.dirtyDates.clear();
         state.profileDirty = false;
@@ -719,6 +842,11 @@
         for (const k of dates) {
             const ref = doc(reportsCol(), k);
             const r = cleanReport(state.reports[k]);
+            const previous = state.savedReports[k];
+            if (previous && !isEmptyReport(previous)) {
+                const historyRef = doc(historyCol());
+                batch.set(historyRef, { date: k, tasks: previous.tasks, comments: previous.comments, folga: previous.folga === true, createdAt: serverTimestamp() });
+            }
             if (isEmptyReport(r)) batch.delete(ref);
             else batch.set(ref, reportDoc(r));
         }
@@ -730,6 +858,10 @@
         refreshStatus();
         try {
             await state.saving;
+            dates.forEach(k => {
+                if (isEmptyReport(cleanReport(state.reports[k]))) { delete state.savedReports[k]; delete state.reports[k]; }
+                else state.savedReports[k] = cloneReport(state.reports[k]);
+            });
             $('last-sync').textContent = 'ÚLTIMO SYNC: ' + new Date().toLocaleTimeString('pt-BR');
             return true;
         } catch (e) {
@@ -755,9 +887,26 @@
         $('status-text').textContent = text ?? STATUS_TEXT[kind];
     }
     function refreshStatus() {
+        const pending = state.dirtyDates.size + (state.profileDirty ? 1 : 0);
+        $('status-dot').title = state.conflicts.size ? `${state.conflicts.size} conflito(s) de sincronização` : (pending ? `${pending} alteração(ões) aguardando sincronização` : 'Sincronização em dia');
+        $('status-bar').title = $('status-dot').title;
+        $('status-bar').style.cursor = state.conflicts.size ? 'pointer' : '';
+        if (state.conflicts.size) return setStatus('error', `${state.conflicts.size} CONFLITO(S) — TOQUE PARA RECARREGAR A VERSÃO DA NUVEM`);
         if (state.saving) return setStatus(navigator.onLine ? 'saving' : 'offline');
+        if (!navigator.onLine && pending) return setStatus('offline', `OFFLINE — ${pending} ALTERAÇÃO(ÕES) NA FILA DO DISPOSITIVO`);
         if (state.dirtyDates.size || state.profileDirty) return setStatus('pending');
         setStatus(navigator.onLine ? 'saved' : 'offline');
+    }
+    function resolveRemoteConflicts() {
+        if (!state.conflicts.size || !confirm('Descartar as alterações locais pendentes e carregar a versão mais recente da nuvem?')) return;
+        for (const k of state.conflicts) {
+            const remote = state.remoteReports.get(k);
+            if (remote) { state.reports[k] = remote; state.savedReports[k] = cloneReport(remote); }
+            else { delete state.reports[k]; delete state.savedReports[k]; }
+            state.dirtyDates.delete(k);
+            state.remoteReports.delete(k);
+        }
+        state.conflicts.clear(); renderDays(); if (chartsVisible()) updateCharts(); refreshStatus();
     }
 
     // ------------------------------------------------------------ Render dos dias
@@ -795,6 +944,12 @@
             const addBtn = el('button', 'btn btn-outline-secondary btn-sm w-100 mt-1 mb-3 btn-dashed', '+ TASK');
             addBtn.type = 'button';
             addBtn.addEventListener('click', () => addTaskRow(list, k).querySelector('.t-desc').focus());
+            const dayTools = el('div', 'd-flex gap-2 mb-3');
+            const copyBtn = el('button', 'btn btn-sm btn-outline-info flex-fill', 'Copiar tasks de outro dia');
+            copyBtn.type = 'button'; copyBtn.addEventListener('click', () => copyTasksFromDate(k));
+            const historyBtn = el('button', 'btn btn-sm btn-outline-secondary', 'Histórico');
+            historyBtn.type = 'button'; historyBtn.addEventListener('click', () => openHistory(k));
+            dayTools.append(copyBtn, historyBtn);
 
             const comm = el('textarea', 'form-control');
             comm.rows = 3;
@@ -802,11 +957,15 @@
             comm.value = report(k).comments;
             comm.addEventListener('input', () => { report(k).comments = comm.value; markDirty(k); });
 
-            card.append(head, list, addBtn, comm);
+            card.append(head, list, addBtn, dayTools, comm);
             col.append(card);
             area.append(col);
 
-            report(k).tasks.forEach(t => addTaskRow(list, k, t));
+            report(k).tasks.forEach(t => {
+                const row = addTaskRow(list, k, t);
+                const mode = $('task-hours-filter').value;
+                row.hidden = mode === 'with' ? parseHours(t.hour) <= 0 : mode === 'without' ? parseHours(t.hour) > 0 : false;
+            });
             updateBadge(card, k);
         }
     }
@@ -882,6 +1041,56 @@
         chip.title = `Meta ${fmtH(b.expected)} · lançado ${fmtH(b.worked)}`;
     }
 
+    async function copyTasksFromDate(targetDate) {
+        const sourceDate = prompt('Copiar tasks de qual dia? Use AAAA-MM-DD:', addDays(targetDate, -1));
+        if (!sourceDate) return;
+        if (!isDateKey(sourceDate) || sourceDate === targetDate) return toast('Informe outra data no formato AAAA-MM-DD.', 'warning');
+        try {
+            await ensureRange(sourceDate, sourceDate);
+            const source = cleanReport(state.reports[sourceDate]);
+            if (!source.tasks.length) return toast(`Não há tasks em ${fmtBR(sourceDate)}.`, 'info');
+            if (!confirm(`Adicionar ${source.tasks.length} task(s) de ${fmtBR(sourceDate)} a ${fmtBR(targetDate)}?`)) return;
+            const target = report(targetDate);
+            const existing = new Set(cleanReport(target).tasks.map(t => `${t.desc}\u0000${t.hour}`));
+            source.tasks.forEach(t => { const key = `${t.desc}\u0000${t.hour}`; if (!existing.has(key)) { target.tasks.push({ ...t }); existing.add(key); } });
+            state.reports[targetDate] = cleanReport(target);
+            markDirty(targetDate); renderDays();
+            toast('Tasks copiadas.', 'success');
+        } catch (e) { toast('Falha ao copiar tasks: ' + (e.code || e.message), 'danger'); }
+    }
+
+    async function openHistory(date) {
+        $('history-date-label').textContent = `Versões salvas anteriormente para ${fmtBR(date)}.`;
+        const wrap = $('history-items'); wrap.replaceChildren();
+        try {
+            const snap = await getDocs(query(historyCol(), where('date', '==', date)));
+            const allVersions = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
+            const versions = allVersions.slice(0, 30);
+            if (allVersions.length > 30) {
+                const old = allVersions.slice(30);
+                for (let i = 0; i < old.length; i += 400) {
+                    const batch = writeBatch(db);
+                    old.slice(i, i + 400).forEach(v => batch.delete(doc(historyCol(), v.id)));
+                    await batch.commit();
+                }
+            }
+            if (!versions.length) wrap.append(el('div', 'text-secondary', 'Ainda não há versões anteriores deste dia.'));
+            versions.forEach((version, index) => {
+                const row = el('div', 'glass-card p-3 d-flex flex-wrap justify-content-between align-items-center gap-2');
+                const when = version.createdAt?.toDate?.().toLocaleString('pt-BR') || 'Data indisponível';
+                row.append(el('div', 'small', `${when} · ${(version.tasks || []).length} tasks · ${String(version.comments || '').length} caracteres em notas`));
+                const restore = el('button', 'btn btn-sm btn-outline-warning', 'Restaurar');
+                restore.type = 'button'; restore.addEventListener('click', async () => {
+                    if (!confirm(`Restaurar esta versão de ${fmtBR(date)}? A versão atual será preservada no histórico.`)) return;
+                    state.reports[date] = cleanReport(version); state.dirtyDates.add(date); await flush();
+                    bootstrap.Modal.getOrCreateInstance($('historyModal')).hide(); renderDays(); toast('Versão restaurada.', 'success');
+                });
+                row.append(restore); wrap.append(row);
+            });
+            bootstrap.Modal.getOrCreateInstance($('historyModal')).show();
+        } catch (e) { toast('Não consegui abrir o histórico: ' + (e.code || e.message), 'danger'); }
+    }
+
     function fillProfileFields() {
         $('queue-field').value = state.profile.queue;
         $('notebook-field').value = state.profile.notebook;
@@ -917,10 +1126,21 @@
         const num = m[3] || null;
         const bullet = m[4] || null;
         const level = num ? num.split('.').length - 1 : Math.floor(indent.replace(/\t/g, '  ').length / 2);
-        return { blank: false, indent, done: /x/i.test(m[2] || ''), num, bullet, text: m[5], level };
+        const meta = readLineMeta(m[5]);
+        return { blank: false, indent, done: /x/i.test(m[2] || ''), num, bullet, text: meta.text, level, priority: meta.priority, tags: meta.tags };
     }
     function formatLine(it) {
-        return it.indent + (it.done ? '[x] ' : '') + (it.num ? it.num + ' - ' : it.bullet ? it.bullet + ' ' : '') + it.text;
+        const meta = [it.priority ? `[[md:p=${it.priority}]]` : '', ...(it.tags || []).map(tag => `[[md:t=${encodeURIComponent(tag)}]]`)].filter(Boolean).join(' ');
+        return it.indent + (it.done ? '[x] ' : '') + (it.num ? it.num + ' - ' : it.bullet ? it.bullet + ' ' : '') + it.text + (meta ? ' ' + meta : '');
+    }
+    function readLineMeta(text) {
+        let priority = '', tags = [];
+        const visible = text.replace(/\s*\[\[md:([pt])=([^\]]*)\]\]/g, (_m, kind, value) => {
+            if (kind === 'p' && ['high', 'medium', 'low'].includes(value)) priority = value;
+            if (kind === 't') { try { const tag = decodeURIComponent(value); if (tag && !tags.includes(tag)) tags.push(tag); } catch {} }
+            return '';
+        }).trimEnd();
+        return { text: visible, priority, tags };
     }
     const isHeading = it => !it.blank && /:\s*$/.test(it.text);
     // Título solto ("CREDENCIAIS:") não ganha checkbox; o resto sim
@@ -971,6 +1191,57 @@
         renderList();
     }
 
+    function updateListMetadata(i, updater) {
+        const lines = getLines();
+        const items = lines.map(parseLine);
+        if (!items[i] || items[i].blank) return;
+        updater(items[i]);
+        lines[i] = formatLine(items[i]);
+        saveLines(lines);
+        renderList();
+    }
+
+    function moveListSibling(from, to) {
+        if (from === to) return;
+        const lines = getLines();
+        const before = lines.map(parseLine);
+        if (!before[from]?.num || !before[to]?.num) return toast('Arraste entre itens numerados do mesmo nível.', 'info');
+        const parentPath = n => n.includes('.') ? n.slice(0, n.lastIndexOf('.')) : '';
+        if (before[from].level !== before[to].level || parentPath(before[from].num) !== parentPath(before[to].num)) return toast('Reordene itens que estejam no mesmo nível.', 'info');
+        const fromEnd = subtreeEnd(before, from);
+        const moving = lines.splice(from, fromEnd - from);
+        const adjustedTo = to > from ? to - (fromEnd - from) : to;
+        const afterRemoval = lines.map(parseLine);
+        const insertAt = adjustedTo;
+        lines.splice(insertAt, 0, ...moving);
+        const items = lines.map(parseLine);
+        const siblings = [];
+        for (let i = 0; i < items.length; i++) if (items[i].num && items[i].level === before[from].level && parentPath(items[i].num) === parentPath(before[from].num)) siblings.push(i);
+        const replacements = siblings.map((i, n) => ({ i, old: items[i].num, next: parentPath(items[i].num) ? parentPath(items[i].num) + '.' + (n + 1) : String(n + 1) }));
+        const original = lines.slice();
+        const originalItems = original.map(parseLine);
+        for (const { i, old, next } of replacements) {
+            const end = subtreeEnd(originalItems, i);
+            for (let j = i; j < end; j++) {
+                const item = originalItems[j];
+                if (item.num && (item.num === old || item.num.startsWith(old + '.'))) {
+                    item.num = next + item.num.slice(old.length);
+                    lines[j] = formatLine(item);
+                }
+            }
+        }
+        saveLines(lines);
+        renderList();
+    }
+    function moveSiblingBy(i, direction) {
+        const items = getLines().map(parseLine);
+        const path = n => n?.includes('.') ? n.slice(0, n.lastIndexOf('.')) : '';
+        const siblings = items.map((it, idx) => ({ it, idx })).filter(x => x.it.num && x.it.level === items[i]?.level && path(x.it.num) === path(items[i]?.num));
+        const at = siblings.findIndex(x => x.idx === i);
+        if (at < 0 || at + direction < 0 || at + direction >= siblings.length) return;
+        moveListSibling(i, siblings[at + direction].idx);
+    }
+
     // Remove a linha i e reavalia o pai (ex.: sobrou só subitem concluído → pai conclui)
     function removeLine(lines, i) {
         const p = parentIdx(lines.map(parseLine), i);
@@ -989,6 +1260,91 @@
         return lines;
     }
 
+    function subtreeEnd(items, i) {
+        let j = i + 1;
+        while (j < items.length && (items[j].blank || items[j].level > items[i].level)) j++;
+        return j;
+    }
+    function replaceNumberPrefix(lines, start, oldNum, newNum) {
+        const items = lines.map(parseLine);
+        const end = subtreeEnd(items, start);
+        for (let j = start; j < end; j++) {
+            if (!items[j].num || (items[j].num !== oldNum && !items[j].num.startsWith(oldNum + '.'))) continue;
+            items[j].num = newNum + items[j].num.slice(oldNum.length);
+            lines[j] = formatLine(items[j]);
+        }
+    }
+    function moveListItem(i, direction) {
+        const lines = getLines();
+        const items = lines.map(parseLine);
+        const it = items[i];
+        if (!it || it.blank || !it.num) return false;
+        let parentToSync = null;
+        if (direction > 0) {
+            let p = i - 1;
+            while (p >= 0 && items[p].blank) p--;
+            if (p < 0 || !items[p].num) { toast('Para criar um filho, o item anterior precisa ter numeração.', 'info'); return false; }
+            const parentNum = items[p].num;
+            parentToSync = parentNum;
+            const childLevel = items[p].level + 1;
+            let max = 0;
+            for (let j = 0; j < i; j++) {
+                const n = items[j].num;
+                if (n && items[j].level === childLevel && n.startsWith(parentNum + '.')) {
+                    const suffix = n.slice(parentNum.length + 1);
+                    if (/^\d+$/.test(suffix)) max = Math.max(max, Number(suffix));
+                }
+            }
+            const oldNum = it.num;
+            const newNum = `${parentNum}.${max + 1}`;
+            replaceNumberPrefix(lines, i, oldNum, newNum);
+        } else {
+            if (!it.num.includes('.')) { toast('Esse item já está no nível principal.', 'info'); return false; }
+            const p = parentIdx(items, i);
+            if (p < 0 || !items[p].num) return false;
+            const parentNum = items[p].num;
+            parentToSync = parentNum;
+            const oldNum = it.num;
+            const sourceEnd = subtreeEnd(items, i);
+            const moving = lines.splice(i, sourceEnd - i);
+            let restItems = lines.map(parseLine);
+            const pAfter = parentIdx(restItems, Math.min(p, restItems.length - 1)) >= 0 ? p : p;
+            let insertAt = subtreeEnd(restItems, pAfter);
+            const newNum = nextNum(parentNum);
+            // Abre espaço entre irmãos, preservando cada subárvore e sua ordem.
+            const prefix = parentNum.includes('.') ? parentNum.slice(0, parentNum.lastIndexOf('.')) : '';
+            const targetSibling = Number(newNum.split('.').at(-1));
+            const roots = [];
+            for (let j = insertAt; j < restItems.length; j++) {
+                const n = restItems[j].num;
+                if (!n || restItems[j].level !== items[p].level) continue;
+                const sameParent = prefix ? n.startsWith(prefix + '.') && n.slice(0, n.lastIndexOf('.')) === prefix : !n.includes('.');
+                const part = Number(n.split('.').at(-1));
+                if (sameParent && part >= targetSibling) roots.push({ index: j, old: n, next: n.slice(0, n.lastIndexOf('.') + 1) + (part + 1) });
+            }
+            for (const root of roots.reverse()) replaceNumberPrefix(lines, root.index, root.old, root.next);
+            moving[0] = formatLine({ ...parseLine(moving[0]), num: newNum });
+            const movedItems = moving.map(parseLine);
+            for (let j = 1; j < moving.length; j++) {
+                if (movedItems[j].num && movedItems[j].num.startsWith(oldNum + '.')) {
+                    movedItems[j].num = newNum + movedItems[j].num.slice(oldNum.length);
+                    moving[j] = formatLine(movedItems[j]);
+                }
+            }
+            lines.splice(insertAt, 0, ...moving);
+        }
+        const after = lines.map(parseLine);
+        const changed = new Set();
+        const parentIndex = parentToSync ? after.findIndex(item => item.num === parentToSync) : -1;
+        if (parentIndex >= 0) syncParents(after, parentIndex, changed);
+        reconcileAllParents(after, changed);
+        changed.forEach(j => { lines[j] = formatLine(after[j]); });
+        saveLines(lines);
+        pendingEdit = null;
+        renderList();
+        return true;
+    }
+
     // Sobe a partir do item i: o pai fica concluído só quando todos os subitens estão concluídos
     function syncParents(items, i, changed) {
         for (let c = i, p = parentIdx(items, c); p >= 0; c = p, p = parentIdx(items, c)) {
@@ -996,6 +1352,15 @@
             const kids = childIdx(items, p).filter(j => isCheckable(items[j]));
             const all = kids.length > 0 && kids.every(j => items[j].done);
             if (items[p].done !== all) { items[p].done = all; changed.add(p); }
+        }
+    }
+    function reconcileAllParents(items, changed) {
+        for (let i = items.length - 1; i >= 0; i--) {
+            if (items[i].blank || !isCheckable(items[i])) continue;
+            const kids = childIdx(items, i).filter(j => isCheckable(items[j]));
+            if (!kids.length) continue;
+            const allDone = kids.every(j => items[j].done);
+            if (items[i].done !== allDone) { items[i].done = allDone; changed.add(i); }
         }
     }
 
@@ -1065,7 +1430,12 @@
         };
 
         input.addEventListener('keydown', e => {
-            if (e.key === 'Enter') {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                finished = true;
+                writeText();
+                if (!moveListItem(i, e.shiftKey ? -1 : 1)) { finished = false; input.focus(); }
+            } else if (e.key === 'Enter') {
                 e.preventDefault();
                 finished = true;
                 const lines = writeText();
@@ -1119,6 +1489,8 @@
         wrap.replaceChildren();
         const items = getLines().map(parseLine);
         const hide = $('list-hide-done').checked;
+        const search = $('list-search').value.trim().toLocaleLowerCase('pt-BR');
+        const filter = $('list-filter').value;
         let total = 0, done = 0;
 
         items.forEach((it, i) => {
@@ -1129,10 +1501,19 @@
             const checkable = isCheckable(it);
             if (checkable) { total++; if (it.done) done++; }
             if (hide && it.done) return;
+            if (search && !`${it.num || ''} ${it.text} ${(it.tags || []).join(' ')}`.toLocaleLowerCase('pt-BR').includes(search)) return;
+            if (filter === 'open' && checkable && it.done) return;
+            if (filter === 'done' && checkable && !it.done) return;
 
             const row = el('div', 'list-item' + (it.done ? ' done' : '') + (isHeading(it) ? ' heading' : ''));
             row.style.setProperty('--lvl', it.level);
             row.dataset.idx = i;
+            row.draggable = !!it.num;
+            row.addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', String(i)); e.dataTransfer.effectAllowed = 'move'; row.classList.add('dragging'); });
+            row.addEventListener('dragend', () => row.classList.remove('dragging'));
+            row.addEventListener('dragover', e => { if (row.draggable) { e.preventDefault(); row.classList.add('drop-target'); } });
+            row.addEventListener('dragleave', () => row.classList.remove('drop-target'));
+            row.addEventListener('drop', e => { e.preventDefault(); row.classList.remove('drop-target'); moveListSibling(Number(e.dataTransfer.getData('text/plain')), i); });
             if (checkable) {
                 const cb = el('button', 'list-check');
                 cb.type = 'button';
@@ -1146,6 +1527,47 @@
             if (it.num) row.append(el('span', 'list-num', it.num));
             else if (it.bullet) row.append(el('span', 'list-num', '•'));
             row.append(makeText(i, it));
+            if (it.num) {
+                const sort = el('span', 'list-sort-controls');
+                const up = el('button', 'bi bi-arrow-up-short'); up.type = 'button'; up.title = 'Mover para cima';
+                up.addEventListener('click', () => moveSiblingBy(i, -1));
+                const down = el('button', 'bi bi-arrow-down-short'); down.type = 'button'; down.title = 'Mover para baixo';
+                down.addEventListener('click', () => moveSiblingBy(i, 1));
+                sort.append(up, down); row.append(sort);
+            }
+
+            if (it.priority) {
+                const p = el('span', `list-tag priority-${it.priority}`, ({ high: 'Alta', medium: 'Média', low: 'Baixa' })[it.priority]);
+                row.append(p);
+            }
+            (it.tags || []).forEach(tag => row.append(el('span', 'list-tag', '#' + tag)));
+            if (checkable) {
+                const priority = el('button', 'list-meta-btn' + (it.priority ? ` priority-${it.priority}` : ''));
+                priority.type = 'button'; priority.title = 'Alterar prioridade'; priority.textContent = 'Prioridade';
+                priority.addEventListener('click', () => updateListMetadata(i, item => { item.priority = ({ '': 'high', high: 'medium', medium: 'low', low: '' })[item.priority || '']; }));
+                const tags = el('button', 'list-meta-btn');
+                tags.type = 'button'; tags.title = 'Editar tags'; tags.textContent = 'Tags';
+                tags.addEventListener('click', () => { const value = prompt('Tags separadas por vírgula:', (it.tags || []).join(', ')); if (value !== null) updateListMetadata(i, item => { item.tags = [...new Set(value.split(',').map(s => s.trim().replace(/^#/, '')).filter(Boolean))]; }); });
+                row.append(priority, tags);
+            }
+
+            if (checkable && it.num) {
+                const previousItem = items.slice(0, i).filter(prev => !prev.blank).at(-1);
+                if (previousItem?.num) {
+                    const indent = el('button', 'list-level-btn');
+                    indent.type = 'button'; indent.title = 'Tornar filho do item anterior'; indent.setAttribute('aria-label', indent.title);
+                    indent.innerHTML = '<i class="bi bi-arrow-return-right"></i>';
+                    indent.addEventListener('click', () => moveListItem(i, 1));
+                    row.append(indent);
+                }
+                if (it.num.includes('.')) {
+                    const outdent = el('button', 'list-level-btn');
+                    outdent.type = 'button'; outdent.title = 'Promover um nível'; outdent.setAttribute('aria-label', outdent.title);
+                    outdent.innerHTML = '<i class="bi bi-arrow-return-left"></i>';
+                    outdent.addEventListener('click', () => moveListItem(i, -1));
+                    row.append(outdent);
+                }
+            }
 
             const n = taskNumberOf(it.text);
             if (n) {
@@ -1446,6 +1868,27 @@
 
         updateExtraChart(sel);
         updateBankChart(sel);
+        updateWeeklySummary(sel, days);
+    }
+
+    function weeklyMetrics(days) {
+        const reports = days.map(k => cleanReport(state.reports[k]));
+        const hours = reports.reduce((sum, r) => sum + totalHours(r.tasks), 0);
+        const taskCount = reports.reduce((sum, r) => sum + r.tasks.filter(t => t.desc || t.hour).length, 0);
+        const extra = days.reduce((sum, k) => sum + dayBalance(k).extra, 0);
+        const expected = days.reduce((sum, k) => sum + expectedHours(k), 0);
+        return { hours: round1(hours), taskCount, extra: round1(extra), expected: round1(expected), days: days.length };
+    }
+    function updateWeeklySummary(sel, days = chartDays(sel)) {
+        const previousEnd = addDays(days[0] || sel, -1);
+        const previousDays = chartDays(previousEnd);
+        const current = weeklyMetrics(days);
+        const previous = weeklyMetrics(previousDays);
+        const delta = round1(current.hours - previous.hours);
+        $('period-summary-text').textContent =
+            `Período atual (${fmtBR(days[0] || sel)}–${fmtBR(days.at(-1) || sel)}): ${fmtH(current.hours)} em ${current.taskCount} tasks, ${fmtH(current.extra)} extras. ` +
+            `Período anterior (${fmtBR(previousDays[0] || previousEnd)}–${fmtBR(previousDays.at(-1) || previousEnd)}): ${fmtH(previous.hours)} em ${previous.taskCount} tasks, ${fmtH(previous.extra)} extras. ` +
+            `Variação: ${delta >= 0 ? '+' : '−'}${fmtH(Math.abs(delta))} e ${current.taskCount - previous.taskCount >= 0 ? '+' : ''}${current.taskCount - previous.taskCount} tasks; meta atual: ${fmtH(current.expected)}.`;
     }
 
     // Só com "Usar banco de horas" ligado: linha do saldo acumulado nos dias com horas do mês
@@ -1620,14 +2063,57 @@
     }
 
     // ------------------------------------------------------------ Backup
-    function downloadText(name, text) {
-        const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+    function downloadText(name, text, type = 'application/json;charset=utf-8') {
+        const url = URL.createObjectURL(new Blob([text], { type }));
         const a = Object.assign(document.createElement('a'), { href: url, download: name });
         document.body.append(a);
         a.click();
         a.remove();
         setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
+
+    async function exportReportRows() {
+        await flush();
+        const snap = await getDocs(reportsCol());
+        const rows = [];
+        snap.forEach(d => {
+            if (!isDateKey(d.id)) return;
+            const r = cleanReport(d.data());
+            if (!r.tasks.length && !r.comments.trim()) rows.push([d.id, '', '', r.comments]);
+            r.tasks.forEach(t => rows.push([d.id, t.desc, t.hour, r.comments]));
+        });
+        rows.sort((a, b) => a[0].localeCompare(b[0]));
+        return rows;
+    }
+    const csvCell = value => '"' + String(value ?? '').replace(/"/g, '""') + '"';
+    async function exportCsv() {
+        try {
+            const rows = await exportReportRows();
+            const csv = [['Data', 'Task', 'Horas', 'Comentários'], ...rows].map(row => row.map(csvCell).join(';')).join('\r\n');
+            downloadText(`mydaily-relatorio-${todayKey()}.csv`, '\ufeff' + csv, 'text/csv;charset=utf-8');
+            toast('CSV exportado.', 'success');
+        } catch (e) { toast('Falha ao exportar CSV: ' + (e.code || e.message), 'danger'); }
+    }
+    async function exportExcel() {
+        try {
+            const rows = await exportReportRows();
+            const cells = [['Data', 'Task', 'Horas', 'Comentários'], ...rows].map(row => '<tr>' + row.map(v => `<td>${escapeHtml(v)}</td>`).join('') + '</tr>').join('');
+            const html = `<html><head><meta charset="utf-8"></head><body><table>${cells}</table></body></html>`;
+            downloadText(`mydaily-relatorio-${todayKey()}.xls`, html, 'application/vnd.ms-excel;charset=utf-8');
+            toast('Arquivo compatível com Excel exportado.', 'success');
+        } catch (e) { toast('Falha ao exportar Excel: ' + (e.code || e.message), 'danger'); }
+    }
+    async function exportPdf() {
+        const win = window.open('', '_blank');
+        if (!win) return toast('Permita pop-ups para gerar o PDF.', 'warning');
+        try {
+            const rows = await exportReportRows();
+            const table = [['Data', 'Task', 'Horas', 'Comentários'], ...rows].map(row => '<tr>' + row.map(v => `<td>${escapeHtml(v)}</td>`).join('') + '</tr>').join('');
+            win.document.write(`<html><head><meta charset="utf-8"><title>MYDAILY — relatório</title><style>body{font:14px Arial;padding:24px;color:#222}h1{font-size:20px}table{width:100%;border-collapse:collapse}td,th{border:1px solid #bbb;padding:6px;text-align:left;white-space:pre-wrap}tr:first-child{font-weight:bold;background:#eee}@media print{body{padding:0}}</style></head><body><h1>MYDAILY — Relatório</h1><table>${table}</table><script>onload=()=>print()<\/script></body></html>`);
+            win.document.close();
+        } catch (e) { toast('Falha ao gerar PDF: ' + (e.code || e.message), 'danger'); }
+    }
+    function escapeHtml(value) { return String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]); }
 
     async function exportBackup() {
         try {
@@ -1674,7 +2160,7 @@
             entries.slice(i, i + 400).forEach(([k, r]) => batch.set(doc(reportsCol(), k), reportDoc(r)));
             await batch.commit();
         }
-        entries.forEach(([k, r]) => { state.reports[k] = r; state.loaded.add(k); });
+        entries.forEach(([k, r]) => { state.reports[k] = r; state.savedReports[k] = cloneReport(r); state.loaded.add(k); });
 
         const p = state.profile;
         p.queue = appendText(p.queue, data.queue);
@@ -1842,8 +2328,9 @@
         clearTimeout(state.retryTimer);
         clearTimeout(state.chartTimer);
         destroyCharts();
+        state.remoteUnsubscribe?.();
         Object.assign(state, {
-            user: null, reports: {}, loaded: new Set(), allLoaded: false, profile: emptyProfile(),
+            user: null, reports: {}, savedReports: {}, loaded: new Set(), allLoaded: false, profile: emptyProfile(), remoteUnsubscribe: null, conflicts: new Set(), remoteReports: new Map(),
             dirtyDates: new Set(), profileDirty: false, saving: null, saveTimer: null, retryTimer: null, chartTimer: null,
         });
         $('render-area').replaceChildren();
@@ -1872,6 +2359,8 @@
             console.error(e);
             toast('Não consegui carregar seu perfil: ' + (e.code || e.message), 'danger');
         }
+        applyTheme(state.profile.settings.theme);
+        configureReminder();
         fillProfileFields();
         try {
             await loadAllReports();
@@ -1879,6 +2368,7 @@
             console.error(e);
             toast('Não consegui carregar o histórico (banco de horas pode ficar incompleto): ' + (e.code || e.message), 'warning');
         }
+        watchRemoteReports();
         await goToDate(state.selected);
         checkLegacy();
     }
@@ -1900,7 +2390,11 @@
             if (!navigator.onLine) { flush(); return toast('Sem internet: salvo no dispositivo, sincroniza quando a conexão voltar.', 'warning'); }
             if (await flush()) toast('Salvo na nuvem.', 'success');
         });
+        $('status-bar').addEventListener('click', resolveRemoteConflicts);
         $('btn-report').addEventListener('click', openReport);
+        $('export-csv').addEventListener('click', exportCsv);
+        $('export-xls').addEventListener('click', exportExcel);
+        $('export-pdf').addEventListener('click', exportPdf);
         $('rep-prev').addEventListener('change', e => { storageSet('mydaily_rep_prev', e.target.checked ? '1' : '0'); $('base-report-text').value = buildReport(); });
         $('rep-global').addEventListener('change', e => { storageSet('mydaily_rep_global', e.target.checked ? '1' : '0'); $('base-report-text').value = buildReport(); });
         $('rep-hours').addEventListener('change', e => { storageSet('mydaily_rep_hours', e.target.checked ? '1' : '0'); $('base-report-text').value = buildReport(); });
@@ -1912,6 +2406,11 @@
         $('queue-field').addEventListener('input', e => { state.profile.queue = e.target.value; autosize(e.target); markProfileDirty(); });
         $('queue-mode-list').addEventListener('click', () => setQueueMode('list'));
         $('queue-mode-text').addEventListener('click', () => setQueueMode('text'));
+        $('list-search').addEventListener('input', renderList);
+        $('task-hours-filter').value = storageGet('mydaily_task_hours_filter') || 'all';
+        $('task-hours-filter').addEventListener('change', e => { storageSet('mydaily_task_hours_filter', e.target.value); renderDays(); });
+        $('list-filter').value = storageGet('mydaily_list_filter') || 'all';
+        $('list-filter').addEventListener('change', e => { storageSet('mydaily_list_filter', e.target.value); renderList(); });
         $('list-hide-done').checked = storageGet('mydaily_list_hide_done') === '1';
         $('list-hide-done').addEventListener('change', e => { storageSet('mydaily_list_hide_done', e.target.checked ? '1' : '0'); renderList(); });
         $('list-clear-done').addEventListener('click', clearDone);
@@ -1928,13 +2427,21 @@
             $('set-meta').value = state.profile.settings.metaHoras;
             $('set-skip').checked = !!state.profile.settings.pularFimDeSemana;
             $('set-bank').checked = !!state.profile.settings.usaBancoHoras;
+            $('set-theme').value = state.profile.settings.theme || 'dark';
+            $('set-reminder').checked = !!state.profile.settings.reminderEnabled;
+            $('set-reminder-time').value = state.profile.settings.reminderTime || '09:00';
             bootstrap.Modal.getOrCreateInstance($('settingsModal')).show();
         });
+        $('set-reminder').addEventListener('change', async e => { if (e.target.checked) await requestReminderPermission(); });
+        window.matchMedia?.('(prefers-color-scheme: light)').addEventListener?.('change', () => { if (state.profile.settings.theme === 'system') applyTheme('system'); });
+        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkReminder(); });
         $('settings-form').addEventListener('submit', e => {
             e.preventDefault();
             const meta = Number($('set-meta').value);
             if (!(meta > 0 && meta <= 24)) return toast('Meta deve ser entre 0,5 e 24 horas.', 'warning');
-            state.profile.settings = { ...state.profile.settings, metaHoras: meta, pularFimDeSemana: $('set-skip').checked, usaBancoHoras: $('set-bank').checked };
+            state.profile.settings = { ...state.profile.settings, metaHoras: meta, pularFimDeSemana: $('set-skip').checked, usaBancoHoras: $('set-bank').checked, theme: $('set-theme').value, reminderEnabled: $('set-reminder').checked, reminderTime: $('set-reminder-time').value || '09:00' };
+            applyTheme(state.profile.settings.theme);
+            configureReminder();
             markProfileDirty();
             bootstrap.Modal.getOrCreateInstance($('settingsModal')).hide();
             goToDate(state.selected);
