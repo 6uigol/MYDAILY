@@ -1191,7 +1191,9 @@
         const last = lines.map(parseLine).filter(it => !it.blank).at(-1);
         lines.push(formatLine({
             indent: last?.indent || '', done: false, text: '',
-            num: last?.num ? nextNum(last.num) : null,
+            // A primeira linha precisa de conteúdo estrutural para o parser não
+            // descartá-la como linha vazia antes de abrir o editor.
+            num: last?.num ? nextNum(last.num) : last?.bullet ? null : '1',
             bullet: !last?.num && last?.bullet ? last.bullet : null,
         }));
         saveLines(lines);
