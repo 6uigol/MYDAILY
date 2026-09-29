@@ -2,7 +2,12 @@
 <html lang="pt-br" data-bs-theme="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#030303">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="MYDAILY">
     <title>MYDAILY</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' stop-color='%233d5afe'/><stop offset='100%' stop-color='%2300f2ff'/></linearGradient></defs><rect width='100' height='100' rx='22' fill='url(%23g)'/><text x='50%' y='50%' dominant-baseline='central' text-anchor='middle' font-family='sans-serif' font-weight='900' font-size='75' fill='white'>M</text></svg>">
 
@@ -34,22 +39,22 @@
         }
 
         /* Cursores personalizados (SVG); se o navegador não carregar, cai no padrão */
+        /* Ponto + anel (normal) · anel preenchido (clicável) · barra fina (texto) */
         html, body {
-            cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%2300f2ff'/%3E%3Cstop offset='1' stop-color='%233d5afe'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M3 2 L3 19 L7.5 14.8 L10.4 21.2 L13.2 20 L10.3 13.7 L16.5 13.7 Z' fill='url(%23g)' stroke='%23000' stroke-width='1.4' stroke-linejoin='round'/%3E%3C/svg%3E") 3 2, auto;
+            cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='22' viewBox='0 0 22 22'%3E%3Ccircle cx='11' cy='11' r='8' fill='none' stroke='%2300f2ff' stroke-opacity='.45' stroke-width='1.5'/%3E%3Ccircle cx='11' cy='11' r='2.6' fill='%2300f2ff'/%3E%3C/svg%3E") 11 11, auto;
         }
         a, button, .btn, [role="button"], .nav-link, .dropdown-item, .form-check-input, .form-check-label,
-        input[type="date"], input[type="checkbox"], select, label[for] {
-            cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M3 2 L3 19 L7.5 14.8 L10.4 21.2 L13.2 20 L10.3 13.7 L16.5 13.7 Z' fill='%23ffffff' stroke='%233d5afe' stroke-width='1.6' stroke-linejoin='round'/%3E%3Ccircle cx='18' cy='18' r='3.2' fill='%2300f2ff' stroke='%23000' stroke-width='1'/%3E%3C/svg%3E") 3 2, pointer;
+        input[type="date"], input[type="checkbox"], select, label[for], .list-check, .list-text, .chip-btn {
+            cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='26' viewBox='0 0 26 26'%3E%3Ccircle cx='13' cy='13' r='10' fill='%233d5afe' fill-opacity='.22' stroke='%233d5afe' stroke-width='2'/%3E%3Ccircle cx='13' cy='13' r='3' fill='%23ffffff'/%3E%3C/svg%3E") 13 13, pointer;
         }
         input[type="text"], input[type="email"], input[type="password"], input[type="number"], input:not([type]), textarea {
-            cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='24' viewBox='0 0 16 24'%3E%3Cpath d='M4 2h8M8 2v20M4 22h8' stroke='%23000' stroke-width='4' stroke-linecap='round'/%3E%3Cpath d='M4 2h8M8 2v20M4 22h8' stroke='%2300f2ff' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") 8 12, text;
+            cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='22' viewBox='0 0 10 22'%3E%3Crect x='3.5' y='1' width='3' height='20' rx='1.5' fill='%23000' fill-opacity='.6'/%3E%3Crect x='4.25' y='1.75' width='1.5' height='18.5' rx='.75' fill='%2300f2ff'/%3E%3C/svg%3E") 5 11, text;
         }
         button:disabled, .btn:disabled { cursor: not-allowed; }
 
-        /* Cursor de digitação estilo terminal */
+        /* Cursor de digitação: barra fina ciano */
         input, textarea { caret-color: var(--terminal); }
-        textarea.form-control, .form-control { caret-shape: block; }
-        .auth-input { caret-shape: bar; caret-color: var(--accent); }
+        .auth-input { caret-color: var(--accent); }
         ::selection { background: rgba(61, 90, 254, .45); color: #fff; }
 
         .screen {
@@ -85,15 +90,16 @@
         .day-card.selected { border-color: rgba(61, 90, 254, .55); box-shadow: 0 0 0 1px rgba(61,90,254,.25), 0 15px 35px rgba(0,0,0,.6); }
         .task-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
         .task-row .t-desc { flex: 1 1 auto; min-width: 0; }
+        .task-row textarea.t-desc {
+            resize: none; overflow: hidden; white-space: nowrap; line-height: 1.5;
+            min-height: 0; height: calc(1.5em + .5rem + 2px);
+        }
         .task-row .t-hour { flex: 0 0 78px; width: 78px; text-align: center; }
         .hours-badge { font-family: 'Fira Code', monospace; color: var(--terminal); font-size: .8rem; background: rgba(0,242,255,.08); border-radius: 8px; padding: 3px 9px; white-space: nowrap; }
         .saldo-chip { font-family: 'Fira Code', monospace; font-size: .75rem; font-weight: 600; border-radius: 8px; padding: 2px 8px; white-space: nowrap; }
         .saldo-pos { color: var(--save-green); background: rgba(0,255,65,.1); }
-        .saldo-neg { color: var(--queue-color); background: rgba(255,145,0,.12); }
         .saldo-zero { color: var(--muted); background: rgba(255,255,255,.05); }
         .text-extra { color: var(--save-green) !important; }
-        .text-compensar { color: var(--queue-color) !important; }
-        .folga-switch { font-size: .8rem; color: var(--muted); }
 
         textarea.form-control.queue-area {
             background: repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(255, 145, 0, 0.04) 40px) !important;
@@ -101,6 +107,39 @@
             min-height: 320px; resize: none; overflow: hidden;
             font-size: 1.1rem; line-height: 2; padding: 28px !important;
         }
+        /* Lista inteligente das anotações */
+        .list-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin-bottom: 16px; }
+        .list-progress { flex: 1 1 160px; height: 6px; background: rgba(255,255,255,.07); border-radius: 99px; overflow: hidden; }
+        .list-progress-bar { height: 100%; width: 0; background: linear-gradient(90deg, var(--queue-color), var(--save-green)); transition: width .3s; }
+        .list-progress-txt { font-family: 'Fira Code', monospace; font-size: .8rem; color: var(--muted); white-space: nowrap; }
+        .smart-list { border-left: 10px solid var(--queue-color); border-radius: 12px; background: rgba(0,0,0,.45); padding: 14px 10px 14px 6px; min-height: 120px; }
+        .list-item { display: flex; align-items: flex-start; gap: 10px; padding: 7px 10px; padding-left: calc(10px + var(--lvl, 0) * 28px); border-radius: 10px; transition: background .15s; }
+        .list-item:hover { background: rgba(255,255,255,.035); }
+        .list-item.done .list-text { color: var(--muted); text-decoration: line-through; text-decoration-color: rgba(255,255,255,.3); }
+        .list-item.done .list-num { opacity: .45; }
+        .list-item.heading .list-text { color: #fff; font-weight: 700; letter-spacing: .3px; }
+        .list-check {
+            flex: 0 0 20px; width: 20px; height: 20px; margin-top: 3px; border-radius: 6px; border: 2px solid rgba(255,145,0,.7);
+            display: flex; align-items: center; justify-content: center; background: transparent; padding: 0; color: #000; transition: .15s;
+        }
+        .list-check:hover { border-color: var(--queue-color); box-shadow: 0 0 0 3px rgba(255,145,0,.15); }
+        .list-item.done .list-check { background: var(--save-green); border-color: var(--save-green); }
+        .list-check i { font-size: .8rem; opacity: 0; }
+        .list-item.done .list-check i { opacity: 1; }
+        .list-num { flex: 0 0 auto; font-family: 'Fira Code', monospace; font-size: .85rem; color: var(--queue-color); background: rgba(255,145,0,.1); border-radius: 6px; padding: 2px 7px; margin-top: 1px; }
+        .list-text { flex: 1 1 auto; min-width: 0; font-family: 'Fira Code', monospace; font-size: 1rem; line-height: 1.6; color: var(--terminal); word-break: break-word; }
+        .list-edit { flex: 1 1 auto; min-width: 0; background: rgba(0,0,0,.6); border: 1px solid var(--accent); border-radius: 8px; color: #fff; font-family: 'Fira Code', monospace; font-size: 1rem; padding: 2px 8px; outline: none; }
+        .list-spacer { height: 12px; }
+        .chip-task { display: inline-block; font-size: .8rem; font-weight: 600; color: #fff; background: rgba(61,90,254,.35); border: 1px solid rgba(61,90,254,.7); border-radius: 6px; padding: 0 6px; margin-right: 2px; }
+        .chip-ch { display: inline-block; font-size: .8rem; color: var(--queue-color); background: rgba(255,145,0,.12); border-radius: 6px; padding: 0 6px; }
+        .list-text a { color: var(--terminal); }
+        .chip-btn { flex: 0 0 auto; font-size: .75rem; font-weight: 700; color: var(--accent); background: rgba(61,90,254,.1); border: 1px solid rgba(61,90,254,.4); border-radius: 8px; padding: 2px 8px; opacity: 0; transition: opacity .15s; }
+        .list-item:hover .chip-btn, .chip-btn:focus { opacity: 1; }
+        .chip-btn.added { color: var(--save-green); border-color: rgba(0,255,65,.4); background: rgba(0,255,65,.08); opacity: 1; }
+        .list-add { display: flex; align-items: center; gap: 10px; margin-top: 10px; padding: 8px 16px; border: 1px dashed rgba(255,145,0,.35); border-radius: 12px; color: var(--queue-color); }
+        .list-new-input { flex: 1; background: transparent; border: none; outline: none; color: #fff; font-family: 'Fira Code', monospace; }
+        @media (hover: none) { .chip-btn { opacity: 1; } }
+
         textarea.form-control.notebook-area {
             min-height: calc(100vh - 260px); padding: 28px !important; border-left: 8px solid var(--accent) !important;
             resize: none; overflow: hidden; line-height: 1.8;
@@ -136,9 +175,67 @@
         .modal-content.glass-card { background: #0b0b0e; }
         .dropdown-menu { background: #0b0b0e; border: 1px solid var(--border); border-radius: 14px; }
 
-        @media (max-width: 576px) {
+        /* ---------- Celular / tablet ---------- */
+        .status-bar { padding-bottom: calc(8px + env(safe-area-inset-bottom)); }
+        body { padding-bottom: calc(48px + env(safe-area-inset-bottom)); }
+
+        @media (max-width: 991.98px) {
+            /* dia selecionado (HOJE) aparece primeiro quando os cards empilham */
+            #render-area { flex-direction: column-reverse; }
+        }
+
+        @media (max-width: 767.98px) {
+            header { gap: 12px !important; margin-bottom: 16px !important; }
+            header h1 { font-size: 1.9rem !important; }
+            /* controles do topo: data na linha inteira; Relatório | Salvar | usuário embaixo */
+            #header-controls { display: grid !important; grid-template-columns: 1fr 1fr auto; width: 100%; }
+            #header-controls .date-pill { grid-column: 1 / -1; justify-content: space-between; }
+            #header-controls .date-pill input { flex: 1; text-align: center; }
+            #header-controls .header-btn { width: 100%; height: 44px; padding: 0 10px; font-size: .9rem; }
+
+            /* abas numa linha só, divididas igualmente */
+            #mainTabs { flex-wrap: nowrap; gap: 6px !important; margin-bottom: 16px !important; }
+            #mainTabs .nav-item { flex: 1; }
+            #mainTabs .nav-link { width: 100%; padding: 10px 4px; font-size: .8rem; }
+
+            .chart-container { height: 300px !important; }
+            #extraChart, #bankChart { max-height: 240px; }
+            .kpi-value { font-size: 1.7rem; }
+            .kpi-label { font-size: .7rem; }
+        }
+
+        @media (max-width: 575.98px) {
+            .container-fluid { padding-left: 12px !important; padding-right: 12px !important; }
+            .glass-card { border-radius: 18px; }
+            .day-card, #tab-logs > .glass-card, #tab-charts .glass-card { padding: 16px !important; }
             .status-bar .hide-sm { display: none; }
-            .header-btn { height: 42px; padding-left: 12px; padding-right: 12px; }
+            .status-bar { padding-left: 12px; padding-right: 12px; font-size: .68rem; }
+            .status-bar > div { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+            /* iPhone dá zoom em campo com fonte < 16px: todo campo fica com 16px */
+            input, textarea, select, .form-control, .form-control-sm, .list-edit, .list-new-input { font-size: 16px !important; }
+
+            /* task: descrição na linha inteira, horas + lixeira embaixo */
+            /* task: descrição quebra linha à esquerda; horas e lixeira compactas à direita */
+            .task-row {
+                display: grid; grid-template-columns: minmax(0, 1fr) 58px 30px; gap: 6px; align-items: start;
+                padding-bottom: 8px; border-bottom: 1px solid var(--border); margin-bottom: 8px;
+            }
+            .task-row textarea.t-desc { white-space: normal; height: auto; line-height: 1.4; padding: 8px 10px; word-break: break-word; font-family: 'Inter', sans-serif; }
+            .task-row .t-hour { width: 58px; padding: 7px 4px; }
+            .task-row .btn-link { width: 30px; height: 38px; display: flex; align-items: center; justify-content: center; padding: 0 !important; }
+
+            textarea.form-control.queue-area { padding: 16px !important; border-left-width: 6px !important; font-size: 1rem; }
+            textarea.form-control.notebook-area { padding: 16px !important; border-left-width: 5px !important; }
+            .smart-list { border-left-width: 6px; padding: 8px 4px; }
+            .list-item { gap: 8px; padding: 8px 6px; padding-left: calc(6px + var(--lvl, 0) * 16px); }
+            .list-check { flex-basis: 24px; width: 24px; height: 24px; margin-top: 1px; }   /* alvo de toque maior */
+            .list-text { font-size: .95rem; }
+            .list-toolbar { gap: 10px; }
+            .list-toolbar .btn { flex: 1 1 auto; }
+
+            .toast-wrap { left: 12px; right: 12px; bottom: calc(52px + env(safe-area-inset-bottom)); }
+            .modal-fullscreen-sm-down .modal-content { border-radius: 0; }
         }
     </style>
 </head>
@@ -199,7 +296,7 @@
         <header class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
             <h1 class="brand mb-0" style="font-size: 2.4rem;">MY<span class="text-primary">DAILY</span></h1>
 
-            <div class="d-flex flex-wrap align-items-center gap-2">
+            <div class="d-flex flex-wrap align-items-center gap-2" id="header-controls">
                 <div class="glass-card date-pill">
                     <button type="button" class="btn btn-sm btn-link text-light" id="btn-prev" title="Dia anterior (Alt+←)"><i class="bi bi-chevron-left"></i></button>
                     <input type="date" id="date-picker" aria-label="Data selecionada">
@@ -242,8 +339,36 @@
             <div class="tab-pane fade show active" id="tab-logs">
                 <div class="row g-4 mb-4" id="render-area"></div>
                 <div class="glass-card p-4 p-md-5 text-warning">
-                    <h3 class="h4 mb-4 fw-bold"><i class="bi bi-journal-code me-3"></i>ANOTAÇÕES</h3>
-                    <textarea id="queue-field" class="form-control queue-area" placeholder="Escreva suas anotações aqui..."></textarea>
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+                        <h3 class="h4 mb-0 fw-bold"><i class="bi bi-journal-code me-3"></i>ANOTAÇÕES</h3>
+                        <div class="btn-group" role="group" aria-label="Modo das anotações">
+                            <button type="button" class="btn btn-sm btn-outline-warning" id="queue-mode-list"><i class="bi bi-check2-square me-1"></i>Lista</button>
+                            <button type="button" class="btn btn-sm btn-outline-warning" id="queue-mode-text"><i class="bi bi-text-left me-1"></i>Texto</button>
+                        </div>
+                    </div>
+
+                    <div id="queue-list-wrap" class="d-none">
+                        <div class="list-toolbar">
+                            <div class="list-progress"><div class="list-progress-bar" id="list-progress-bar"></div></div>
+                            <span class="list-progress-txt" id="list-progress-txt">0 de 0</span>
+                            <div class="form-check form-switch mb-0 small">
+                                <input class="form-check-input" type="checkbox" id="list-hide-done">
+                                <label class="form-check-label text-secondary" for="list-hide-done">Ocultar concluídos</label>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="list-clear-done"><i class="bi bi-trash3 me-1"></i>Limpar concluídos</button>
+                        </div>
+                        <div id="queue-list" class="smart-list"></div>
+                        <div class="list-add">
+                            <i class="bi bi-plus-lg"></i>
+                            <input type="text" id="list-new" class="list-new-input" placeholder="Novo item — Enter para adicionar (numera sozinho seguindo o último item)">
+                        </div>
+                        <div class="small text-secondary mt-2">
+                            Clique no texto para editar · <b>Enter</b> cria o próximo item · <b>Backspace</b> em item vazio apaga ·
+                            marcar um item marca os subitens · <b>→ dia</b> manda a task para o dia selecionado
+                        </div>
+                    </div>
+
+                    <textarea id="queue-field" class="form-control queue-area" placeholder="Escreva suas anotações aqui... Use 1 -, 1.1 -, - ou [x] no começo da linha para virar lista."></textarea>
                 </div>
             </div>
 
@@ -251,19 +376,26 @@
                 <div class="row g-4 mb-4 text-center">
                     <div class="col-6 col-md-3"><div class="glass-card p-4 h-100"><div id="kpi-tasks" class="kpi-value">0</div><div class="kpi-label">TASKS NO DIA</div></div></div>
                     <div class="col-6 col-md-3"><div class="glass-card p-4 h-100"><div id="kpi-hours" class="kpi-value">0</div><div class="kpi-label" id="kpi-hours-label">HORAS NO DIA</div></div></div>
-                    <div class="col-6 col-md-3"><div class="glass-card p-4 h-100"><div id="kpi-saldo" class="kpi-value">0h</div><div class="kpi-label" id="kpi-saldo-label">SALDO DO DIA</div></div></div>
-                    <div class="col-6 col-md-3"><div class="glass-card p-4 h-100"><div id="kpi-bank" class="kpi-value">0h</div><div class="kpi-label" id="kpi-bank-label">BANCO DE HORAS</div></div></div>
+                    <div class="col-6 col-md-3"><div class="glass-card p-4 h-100"><div id="kpi-saldo" class="kpi-value">—</div><div class="kpi-label" id="kpi-saldo-label">SITUAÇÃO DO DIA</div></div></div>
+                    <div class="col-6 col-md-3"><div class="glass-card p-4 h-100"><div id="kpi-pct" class="kpi-value">0%</div><div class="kpi-label" id="kpi-pct-label">DA META DO DIA</div></div></div>
                 </div>
                 <div class="row g-4 mb-4">
                     <div class="col-lg-8"><div class="glass-card p-4"><h5 class="fw-bold mb-4" style="color:var(--accent)" id="trend-title">HORAS POR TAREFA — ÚLTIMOS 7 DIAS</h5><div class="chart-container" style="height:420px"><canvas id="mainTrendChart"></canvas><div class="chart-empty d-none" id="trend-empty">Sem horas lançadas nesses dias</div></div></div></div>
                     <div class="col-lg-4"><div class="glass-card p-4"><h5 class="fw-bold mb-4" style="color:var(--terminal)">DISTRIBUIÇÃO DO DIA</h5><div class="chart-container" style="height:420px"><canvas id="taskDistributionChart"></canvas><div class="chart-empty d-none" id="dist-empty">Sem horas lançadas neste dia</div></div></div></div>
                 </div>
-                <div class="glass-card p-4">
+                <div class="glass-card p-4 mb-4 d-none" id="bank-card">
                     <div class="d-flex flex-wrap justify-content-between align-items-baseline gap-2 mb-4">
-                        <h5 class="fw-bold mb-0" style="color:var(--save-green)" id="bank-title">BANCO DE HORAS</h5>
-                        <small class="text-secondary"><span style="color:var(--save-green)">■</span> hora extra &nbsp; <span style="color:var(--queue-color)">■</span> a compensar &nbsp; <span style="color:var(--terminal)">━</span> saldo acumulado</small>
+                        <h5 class="fw-bold mb-0" style="color:var(--terminal)" id="bank-title">BANCO DE HORAS</h5>
+                        <small class="text-secondary">Saldo acumulado (lançado − meta) nos dias com horas · inclui meses anteriores</small>
                     </div>
-                    <div class="chart-container" style="height:320px"><canvas id="bankChart"></canvas><div class="chart-empty d-none" id="bank-empty">Nenhum dia com horas neste mês</div></div>
+                    <div class="chart-container" style="height:260px"><canvas id="bankChart"></canvas><div class="chart-empty d-none" id="bank-empty">Nenhum dia com horas neste mês</div></div>
+                </div>
+                <div class="glass-card p-4 d-none" id="extra-card">
+                    <div class="d-flex flex-wrap justify-content-between align-items-baseline gap-2 mb-4">
+                        <h5 class="fw-bold mb-0" style="color:var(--save-green)" id="extra-title">HORAS EXTRAS</h5>
+                        <small class="text-secondary">Só os dias em que passou da meta · clique na barra para abrir o dia</small>
+                    </div>
+                    <div class="chart-container" style="height:260px"><canvas id="extraChart"></canvas></div>
                 </div>
             </div>
 
@@ -284,7 +416,7 @@
 
 <!-- RELATÓRIO -->
 <div class="modal fade" id="reportModal" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-fullscreen-sm-down">
         <div class="modal-content glass-card" style="border: 1px solid var(--terminal);">
             <div class="modal-header border-0 pb-0">
                 <h5 class="modal-title fw-bold" style="color:var(--terminal);">RELATÓRIO DA DAILY</h5>
@@ -293,7 +425,7 @@
             <div class="modal-body">
                 <div class="d-flex flex-wrap gap-4 mb-3 small">
                     <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="rep-prev"><label class="form-check-label" for="rep-prev">Incluir dia anterior</label></div>
-                    <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="rep-hours" checked><label class="form-check-label" for="rep-hours">Incluir saldo e banco de horas</label></div>
+                    <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="rep-hours" checked><label class="form-check-label" for="rep-hours">Incluir horas do dia</label></div>
                     <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="rep-global" checked><label class="form-check-label" for="rep-global">Incluir anotações globais</label></div>
                 </div>
                 <textarea id="base-report-text" class="form-control" rows="16" style="color:#fff; font-size:.9rem; line-height:1.6; border-color:rgba(0,242,255,.15);"></textarea>
@@ -321,10 +453,15 @@
                     <input class="form-check-input" type="checkbox" id="set-skip">
                     <label class="form-check-label" for="set-skip">Pular sábado e domingo nos dias exibidos, nas setas e nos gráficos</label>
                 </div>
+                <div class="form-check form-switch mt-2">
+                    <input class="form-check-input" type="checkbox" id="set-bank">
+                    <label class="form-check-label" for="set-bank">Usar banco de horas (acumula extra e o que faltou entre os dias)</label>
+                </div>
                 <div class="small text-secondary mt-3">
-                    A meta é o esperado por dia útil. Horas acima dela contam como <b style="color:var(--save-green)">hora extra</b>; abaixo, como <b style="color:var(--queue-color)">a compensar</b>.
-                    Com "pular fim de semana" ligado, sábado e domingo esperam 0h (tudo que for lançado neles é extra).
-                    Marque um dia como <b>folga / compensação</b> para descontar a meta inteira do banco.
+                    A meta é o esperado por dia útil. O que passar dela no dia aparece como <b style="color:var(--save-green)">hora extra</b>
+                    (cada dia é visto sozinho, não acumula); abaixo dela, o dia mostra quantas horas faltam.
+                    Com "pular fim de semana" ligado, sábado e domingo não têm meta: tudo que for lançado neles é extra.
+                    Com <b>banco de horas</b> ligado, o saldo (extra e o que faltou) passa a acumular entre os dias e aparece nas estatísticas e no relatório.
                 </div>
             </div>
             <div class="modal-footer border-0 pt-0">
@@ -363,7 +500,7 @@
         doc, getDoc, getDocs, collection, query, where, documentId, writeBatch, serverTimestamp
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    const DEFAULT_SETTINGS = { metaHoras: 8, pularFimDeSemana: true };
+    const DEFAULT_SETTINGS = { metaHoras: 8, pularFimDeSemana: true, usaBancoHoras: false };
     const SAVE_DELAY_MS = 1500;
     const PROFILE_MAX_CHARS = 900000; // documento do Firestore tem limite de 1 MB
     const CHART_COLORS = ['#00f2ff', '#3d5afe', '#8e24aa', '#ff9100', '#00ff41', '#ff4d6d', '#ffd60a', '#4cc9f0', '#b388ff', '#80ffdb'];
@@ -399,7 +536,7 @@
         retryTimer: null,
         chartTimer: null,
         nav: 0,
-        charts: { trend: null, dist: null, bank: null },
+        charts: { trend: null, dist: null, extra: null, bank: null },
     };
 
     function emptyProfile() { return { queue: '', notebook: '', settings: { ...DEFAULT_SETTINGS } }; }
@@ -460,11 +597,6 @@
     const round1 = n => Math.round(n * 10) / 10;
     function fmtH(n) { return round1(n).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + 'h'; }
     function totalHours(tasks) { return tasks.reduce((a, t) => a + parseHours(t.hour), 0); }
-    function fmtSigned(n) {
-        const r = round1(n);
-        if (r === 0) return '0h';
-        return (r > 0 ? '+' : '−') + fmtH(Math.abs(r));
-    }
 
     // ------------------------------------------------------------ Dados
     function cleanReport(r) {
@@ -492,30 +624,38 @@
     // Horas esperadas no dia: a meta nos dias úteis; 0 no fim de semana quando ele é pulado
     function expectedHours(k) { return skipWeekends() && isWeekend(k) ? 0 : metaHoras(); }
 
-    // Só entra no banco o dia que tem horas lançadas ou está marcado como folga/compensação
+    // Situação do dia frente à meta: hora extra (acima) ou quanto falta (abaixo). Não acumula entre dias.
     function dayBalance(k) {
-        const r = cleanReport(state.reports[k]);
-        const worked = totalHours(r.tasks);
+        const worked = totalHours(cleanReport(state.reports[k]).tasks);
         const expected = expectedHours(k);
-        const counted = worked > 0 || r.folga;
-        return { worked, expected, folga: r.folga, counted, saldo: counted ? worked - expected : 0 };
-    }
-
-    function bankUntil(k) {
-        let total = 0;
-        for (const d of Object.keys(state.reports)) if (isDateKey(d) && d <= k) total += dayBalance(d).saldo;
-        return total;
+        const extra = Math.max(0, round1(worked - expected));
+        const falta = Math.max(0, round1(expected - worked));
+        return { worked, expected, extra, falta, hasHours: worked > 0 };
     }
 
     function saldoText(b) {
-        if (!b.counted) return '';
-        if (b.folga && b.worked === 0) return `folga ${fmtSigned(b.saldo)}`;
-        const r = round1(b.saldo);
-        if (r > 0) return `${fmtSigned(r)} extra`;
-        if (r < 0) return `${fmtSigned(r)} a compensar`;
-        return 'na meta';
+        if (b.extra > 0) return `+${fmtH(b.extra)} extra`;
+        if (!b.hasHours) return '';
+        if (b.falta > 0) return `faltam ${fmtH(b.falta)}`;
+        return '✓ meta';
     }
-    const saldoClass = n => round1(n) > 0 ? 'saldo-pos' : round1(n) < 0 ? 'saldo-neg' : 'saldo-zero';
+    const saldoClass = b => b.extra > 0 ? 'saldo-pos' : 'saldo-zero';
+
+    // Banco de horas (opcional, Configurações): soma lançado − meta dos dias com horas até a data k
+    const usaBanco = () => !!state.profile.settings.usaBancoHoras;
+    function bankUntil(k) {
+        let total = 0;
+        for (const d of Object.keys(state.reports)) {
+            if (!isDateKey(d) || d > k) continue;
+            const b = dayBalance(d);
+            if (b.hasHours) total += b.worked - b.expected;
+        }
+        return round1(total);
+    }
+    function fmtSigned(n) {
+        const r = round1(n);
+        return r === 0 ? '0h' : (r > 0 ? '+' : '−') + fmtH(Math.abs(r));
+    }
 
     const reportsCol = () => collection(db, 'users', state.user.uid, 'reports');
     const userRef = () => doc(db, 'users', state.user.uid);
@@ -669,17 +809,7 @@
             comm.value = report(k).comments;
             comm.addEventListener('input', () => { report(k).comments = comm.value; markDirty(k); });
 
-            const folgaWrap = el('div', 'form-check form-switch folga-switch mt-2 mb-0');
-            const folga = el('input', 'form-check-input');
-            folga.type = 'checkbox';
-            folga.id = 'folga-' + k;
-            folga.checked = report(k).folga;
-            const folgaLbl = el('label', 'form-check-label', 'Folga / compensação (desconta a meta do banco)');
-            folgaLbl.htmlFor = folga.id;
-            folga.addEventListener('change', () => { report(k).folga = folga.checked; updateBadge(card, k); markDirty(k); });
-            folgaWrap.append(folga, folgaLbl);
-
-            card.append(head, list, addBtn, comm, folgaWrap);
+            card.append(head, list, addBtn, comm);
             col.append(card);
             area.append(col);
 
@@ -690,7 +820,9 @@
 
     function addTaskRow(list, k, t = { desc: '', hour: '' }) {
         const row = el('div', 'task-row');
-        const desc = el('input', 'form-control form-control-sm t-desc');
+        // textarea de 1 linha: no PC parece um input; no celular quebra linha e mostra a descrição inteira
+        const desc = el('textarea', 'form-control form-control-sm t-desc');
+        desc.rows = 1;
         desc.value = t.desc;
         desc.placeholder = 'Descrição da task';
         const hour = el('input', 'form-control form-control-sm t-hour');
@@ -704,7 +836,11 @@
         del.innerHTML = '<i class="bi bi-trash3-fill"></i>';
 
         const sync = () => syncTasks(list, k);
-        desc.addEventListener('input', sync);
+        desc.addEventListener('input', () => {
+            if (desc.value.includes('\n')) desc.value = desc.value.replace(/\s*\n\s*/g, ' ');   // colar texto com quebra
+            fitDesc(desc);
+            sync();
+        });
         hour.addEventListener('input', sync);
         del.addEventListener('click', () => { row.remove(); sync(); });
         desc.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); hour.focus(); } });
@@ -717,8 +853,18 @@
 
         row.append(desc, hour, del);
         list.append(row);
+        fitDesc(desc);
         hour.classList.toggle('is-invalid', isHourInvalid(hour.value));
         return row;
+    }
+
+    const isPhone = () => window.matchMedia('(max-width: 575.98px)').matches;
+    // No celular a descrição cresce com o texto; no PC fica com a altura de um input
+    function fitDesc(ta) {
+        if (!isPhone()) { ta.style.height = ''; return; }
+        if (!ta.offsetParent) return;   // aba escondida: ajusta quando aparecer
+        ta.style.height = 'auto';
+        ta.style.height = ta.scrollHeight + 2 + 'px';
     }
 
     function syncTasks(list, k) {
@@ -737,15 +883,17 @@
         card.querySelector('[data-role="total"]').textContent =
             `${tasks.length} task${tasks.length === 1 ? '' : 's'} · ${fmtH(b.worked)} / ${fmtH(b.expected)}`;
         const chip = card.querySelector('[data-role="saldo"]');
-        chip.textContent = saldoText(b);
-        chip.className = 'saldo-chip ' + saldoClass(b.saldo) + (b.counted ? '' : ' d-none');
-        chip.title = b.counted ? `Esperado ${fmtH(b.expected)} · lançado ${fmtH(b.worked)}` : '';
+        const txt = saldoText(b);
+        chip.textContent = txt;
+        chip.className = 'saldo-chip ' + saldoClass(b) + (txt ? '' : ' d-none');
+        chip.title = `Meta ${fmtH(b.expected)} · lançado ${fmtH(b.worked)}`;
     }
 
     function fillProfileFields() {
         $('queue-field').value = state.profile.queue;
         $('notebook-field').value = state.profile.notebook;
         autosizeAll();
+        if (queueMode() === 'list') renderList();
     }
 
     // Cresce a caixa junto com o texto (a rolagem fica na página, não dentro do campo)
@@ -756,7 +904,324 @@
         ta.style.height = ta.scrollHeight + 4 + 'px';
         window.scrollTo(0, scrollY);
     }
-    function autosizeAll() { autosize($('queue-field')); autosize($('notebook-field')); }
+    function autosizeAll() {
+        autosize($('queue-field'));
+        autosize($('notebook-field'));
+        document.querySelectorAll('.task-row textarea.t-desc').forEach(fitDesc);
+    }
+
+    // ------------------------------------------------------------ Lista inteligente (anotações)
+    // O texto continua sendo a fonte: cada linha vira um item e "[x] " no começo marca como concluído.
+    // Numeração "1 -", "1.1 -" define o nível; "- " / "* " vira marcador; recuo com espaços também vale.
+    const LINE_RE = /^(\s*)(\[[ xX]\]\s*)?(?:(\d{1,3}(?:\.\d{1,3})*)\s*[-–.)]\s+|([-*•])\s+)?(.*)$/;
+    const TASK_RE = /\b(?:task|tarefa)\s*#?\s*(\d+)/i;
+    const RICH_RE = /(\b(?:task|tarefa)\s*#?\s*\d+)|(\bCH\s*:\s*\d+)|(https?:\/\/[^\s]+)/gi;
+
+    function parseLine(raw) {
+        if (!raw.trim()) return { blank: true, level: 0 };
+        const m = raw.match(LINE_RE);
+        const indent = m[1] || '';
+        const num = m[3] || null;
+        const bullet = m[4] || null;
+        const level = num ? num.split('.').length - 1 : Math.floor(indent.replace(/\t/g, '  ').length / 2);
+        return { blank: false, indent, done: /x/i.test(m[2] || ''), num, bullet, text: m[5], level };
+    }
+    function formatLine(it) {
+        return it.indent + (it.done ? '[x] ' : '') + (it.num ? it.num + ' - ' : it.bullet ? it.bullet + ' ' : '') + it.text;
+    }
+    const isHeading = it => !it.blank && /:\s*$/.test(it.text);
+    // Título solto ("CREDENCIAIS:") não ganha checkbox; o resto sim
+    const isCheckable = it => !it.blank && !(isHeading(it) && !it.num && !it.bullet);
+
+    function nextNum(num) {
+        const parts = num.split('.');
+        parts[parts.length - 1] = String(Number(parts.at(-1)) + 1);
+        return parts.join('.');
+    }
+
+    function getLines() { return state.profile.queue === '' ? [] : state.profile.queue.split('\n'); }
+    function saveLines(lines) {
+        state.profile.queue = lines.join('\n');
+        $('queue-field').value = state.profile.queue;
+        markProfileDirty();
+    }
+
+    // Subitens: linhas seguintes com nível maior, até voltar ao mesmo nível (linhas em branco no meio não quebram)
+    function childIdx(items, i) {
+        const out = [];
+        for (let j = i + 1; j < items.length; j++) {
+            if (items[j].blank) continue;
+            if (items[j].level <= items[i].level) break;
+            out.push(j);
+        }
+        return out;
+    }
+    function parentIdx(items, i) {
+        for (let j = i - 1; j >= 0; j--) {
+            if (items[j].blank) continue;
+            if (items[j].level < items[i].level) return j;
+        }
+        return -1;
+    }
+
+    function toggleItem(i) {
+        const lines = getLines();
+        const items = lines.map(parseLine);
+        const changed = new Set([i]);
+        items[i].done = !items[i].done;
+        for (const j of childIdx(items, i)) {
+            if (isCheckable(items[j]) && items[j].done !== items[i].done) { items[j].done = items[i].done; changed.add(j); }
+        }
+        syncParents(items, i, changed);
+        changed.forEach(j => { lines[j] = formatLine(items[j]); });
+        saveLines(lines);
+        renderList();
+    }
+
+    // Remove a linha i e reavalia o pai (ex.: sobrou só subitem concluído → pai conclui)
+    function removeLine(lines, i) {
+        const p = parentIdx(lines.map(parseLine), i);
+        lines.splice(i, 1);
+        if (p < 0) return lines;
+        const items = lines.map(parseLine);
+        const kids = childIdx(items, p).filter(j => isCheckable(items[j]));
+        if (!kids.length || !isCheckable(items[p])) return lines;
+        const all = kids.every(j => items[j].done);
+        if (items[p].done !== all) {
+            items[p].done = all;
+            const changed = new Set([p]);
+            syncParents(items, p, changed);
+            changed.forEach(j => { lines[j] = formatLine(items[j]); });
+        }
+        return lines;
+    }
+
+    // Sobe a partir do item i: o pai fica concluído só quando todos os subitens estão concluídos
+    function syncParents(items, i, changed) {
+        for (let c = i, p = parentIdx(items, c); p >= 0; c = p, p = parentIdx(items, c)) {
+            if (!isCheckable(items[p])) break;
+            const kids = childIdx(items, p).filter(j => isCheckable(items[j]));
+            const all = kids.length > 0 && kids.every(j => items[j].done);
+            if (items[p].done !== all) { items[p].done = all; changed.add(p); }
+        }
+    }
+
+    function richText(text) {
+        const out = [];
+        let last = 0;
+        for (const m of text.matchAll(RICH_RE)) {
+            if (m.index > last) out.push(document.createTextNode(text.slice(last, m.index)));
+            if (m[1]) out.push(el('span', 'chip-task', m[1]));
+            else if (m[2]) out.push(el('span', 'chip-ch', m[2]));
+            else {
+                const a = el('a', '', m[3]);
+                a.href = m[3];
+                a.target = '_blank';
+                a.rel = 'noopener noreferrer';
+                out.push(a);
+            }
+            last = m.index + m[0].length;
+        }
+        if (last < text.length) out.push(document.createTextNode(text.slice(last)));
+        if (!out.length) out.push(el('span', 'text-secondary', '(vazio)'));
+        return out;
+    }
+
+    const taskNumberOf = text => text.match(TASK_RE)?.[1] || null;
+    const dayHasTask = (k, n) => cleanReport(state.reports[k]).tasks.some(t => taskKey(t.desc) === 'task#' + n);
+
+    function sendToDay(text) {
+        const k = state.selected;
+        const r = report(k);
+        r.tasks = cleanReport(r).tasks;
+        r.tasks.push({ desc: text.trim(), hour: '' });
+        markDirty(k);
+        renderDays();
+        renderList();
+        toast(`Adicionada às tasks de ${fmtBR(k)}. Falta preencher as horas.`, 'success');
+    }
+
+    let pendingEdit = null;
+
+    function makeText(i, it) {
+        const txt = el('div', 'list-text');
+        txt.append(...richText(it.text));
+        txt.title = 'Clique para editar';
+        txt.addEventListener('click', e => {
+            if (e.target.closest('a')) return;
+            startEdit(i, txt);
+        });
+        return txt;
+    }
+
+    function startEdit(i, txt) {
+        const it = parseLine(getLines()[i] ?? '');
+        if (it.blank) return;
+        const input = el('input', 'list-edit');
+        input.value = it.text;
+        txt.replaceWith(input);
+        input.focus();
+        input.setSelectionRange(input.value.length, input.value.length);
+
+        let finished = false;
+        const writeText = () => {
+            const lines = getLines();
+            const cur = parseLine(lines[i]);
+            if (cur.text !== input.value) { cur.text = input.value; lines[i] = formatLine(cur); saveLines(lines); }
+            return lines;
+        };
+
+        input.addEventListener('keydown', e => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                finished = true;
+                const lines = writeText();
+                const items = lines.map(parseLine);
+                if (!input.value.trim()) {                       // Enter em item vazio: remove e sai
+                    saveLines(removeLine(lines, i));
+                    return renderList();
+                }
+                const cur = items[i];
+                const kids = childIdx(items, i);
+                const pos = (kids.length ? kids.at(-1) : i) + 1;
+                lines.splice(pos, 0, formatLine({ indent: cur.indent, done: false, num: cur.num ? nextNum(cur.num) : null, bullet: cur.bullet, text: '' }));
+                // um subitem novo (aberto) reabre o pai que estava concluído
+                const after = lines.map(parseLine);
+                const changed = new Set();
+                syncParents(after, pos, changed);
+                changed.forEach(j => { lines[j] = formatLine(after[j]); });
+                saveLines(lines);
+                pendingEdit = pos;
+                renderList();
+            } else if (e.key === 'Escape') {
+                finished = true;
+                renderList();
+            } else if (e.key === 'Backspace' && input.value === '') {
+                e.preventDefault();
+                finished = true;
+                const lines = removeLine(getLines(), i);
+                saveLines(lines);
+                const items = lines.map(parseLine);
+                let prev = i - 1;
+                while (prev >= 0 && items[prev].blank) prev--;
+                pendingEdit = prev >= 0 ? prev : null;
+                renderList();
+            }
+        });
+        // Ao sair do campo salva e volta a exibir o texto no mesmo lugar (sem redesenhar a lista toda)
+        input.addEventListener('blur', () => {
+            if (finished) return;
+            finished = true;
+            if (!input.value.trim()) {                          // saiu deixando vazio: remove o item
+                saveLines(removeLine(getLines(), i));
+                return renderList();
+            }
+            writeText();
+            if (input.isConnected) input.replaceWith(makeText(i, parseLine(getLines()[i])));
+        });
+    }
+
+    function renderList() {
+        const wrap = $('queue-list');
+        wrap.replaceChildren();
+        const items = getLines().map(parseLine);
+        const hide = $('list-hide-done').checked;
+        let total = 0, done = 0;
+
+        items.forEach((it, i) => {
+            if (it.blank) {
+                if (i > 0 && !items[i - 1].blank) wrap.append(el('div', 'list-spacer'));
+                return;
+            }
+            const checkable = isCheckable(it);
+            if (checkable) { total++; if (it.done) done++; }
+            if (hide && it.done) return;
+
+            const row = el('div', 'list-item' + (it.done ? ' done' : '') + (isHeading(it) ? ' heading' : ''));
+            row.style.setProperty('--lvl', it.level);
+            row.dataset.idx = i;
+            if (checkable) {
+                const cb = el('button', 'list-check');
+                cb.type = 'button';
+                cb.title = it.done ? 'Desmarcar' : 'Concluir';
+                cb.innerHTML = '<i class="bi bi-check-lg"></i>';
+                cb.addEventListener('click', () => toggleItem(i));
+                row.append(cb);
+            } else {
+                row.append(Object.assign(el('span'), { style: 'flex:0 0 20px' }));
+            }
+            if (it.num) row.append(el('span', 'list-num', it.num));
+            else if (it.bullet) row.append(el('span', 'list-num', '•'));
+            row.append(makeText(i, it));
+
+            const n = taskNumberOf(it.text);
+            if (n) {
+                const b = el('button', 'chip-btn');
+                b.type = 'button';
+                if (dayHasTask(state.selected, n)) {
+                    b.classList.add('added');
+                    b.textContent = '✓ no dia';
+                    b.title = `Task ${n} já está nas tasks de ${fmtBR(state.selected)}`;
+                } else {
+                    b.textContent = '→ dia';
+                    b.title = `Adicionar às tasks de ${fmtBR(state.selected)}`;
+                    b.addEventListener('click', () => sendToDay(it.text));
+                }
+                row.append(b);
+            }
+            wrap.append(row);
+        });
+
+        if (!wrap.children.length) wrap.append(el('div', 'text-secondary small p-3', hide && total ? 'Tudo concluído 🎉' : 'Nenhuma anotação ainda. Adicione um item abaixo.'));
+        $('list-progress-txt').textContent = `${done} de ${total} concluídos`;
+        $('list-progress-bar').style.width = (total ? done / total * 100 : 0) + '%';
+
+        if (pendingEdit != null) {
+            const txt = wrap.querySelector(`.list-item[data-idx="${pendingEdit}"] .list-text`);
+            const idx = pendingEdit;
+            pendingEdit = null;
+            if (txt) startEdit(idx, txt);
+        }
+    }
+
+    function addListItem(value) {
+        const v = value.trim();
+        if (!v) return;
+        const lines = getLines();
+        const typed = parseLine(v);
+        let line = v;
+        if (!typed.num && !typed.bullet) {
+            // Segue o padrão do último item: mesmo nível, próximo número (1.3 → 1.4) ou mesmo marcador
+            const last = lines.map(parseLine).filter(it => !it.blank).at(-1);
+            if (last?.num) line = formatLine({ indent: last.indent, done: false, num: nextNum(last.num), bullet: null, text: v });
+            else if (last?.bullet) line = formatLine({ indent: last.indent, done: false, num: null, bullet: last.bullet, text: v });
+        }
+        lines.push(line);
+        saveLines(lines);
+        renderList();
+    }
+
+    function clearDone() {
+        const lines = getLines();
+        const keep = lines.filter(l => !parseLine(l).done);
+        const removed = lines.length - keep.length;
+        if (!removed) return toast('Nenhum item concluído para limpar.', 'info');
+        if (!confirm(`Remover ${removed} item(ns) concluído(s) das anotações?`)) return;
+        saveLines(keep);
+        renderList();
+    }
+
+    function queueMode() { return storageGet('mydaily_queue_mode') === 'text' ? 'text' : 'list'; }
+    function setQueueMode(mode) {
+        storageSet('mydaily_queue_mode', mode);
+        const list = mode === 'list';
+        $('queue-list-wrap').classList.toggle('d-none', !list);
+        $('queue-field').classList.toggle('d-none', list);
+        $('queue-mode-list').className = 'btn btn-sm ' + (list ? 'btn-warning' : 'btn-outline-warning');
+        $('queue-mode-text').className = 'btn btn-sm ' + (list ? 'btn-outline-warning' : 'btn-warning');
+        if (list) renderList();
+        else { $('queue-field').value = state.profile.queue; autosize($('queue-field')); }
+    }
 
     // ------------------------------------------------------------ Navegação
     async function goToDate(k) {
@@ -775,6 +1240,7 @@
         }
         if (token !== state.nav) return;
         renderDays();
+        if (queueMode() === 'list') renderList();   // "→ dia" depende do dia selecionado
         if (chartsVisible()) updateCharts();
         refreshStatus();
     }
@@ -811,7 +1277,7 @@
         return out;
     }
 
-    // Desenha a linha da meta e o saldo (+extra / −a compensar) em cima de cada barra
+    // Desenha a linha da meta de cada dia e, só onde houve, a hora extra em cima da barra
     const saldoPlugin = {
         id: 'saldo',
         afterDatasetsDraw(chart, _args, opts) {
@@ -833,12 +1299,11 @@
             ctx.setLineDash([]);
             ctx.textAlign = 'center';
             ctx.font = '700 12px Inter, sans-serif';
+            ctx.fillStyle = '#00ff41';
             opts.balances.forEach((b, i) => {
-                if (!b.counted) return;
-                const r = round1(b.saldo);
-                const top = y.getPixelForValue(Math.max(b.worked, b.expected));
-                ctx.fillStyle = r > 0 ? '#00ff41' : r < 0 ? '#ff9100' : '#8a8f98';
-                ctx.fillText(b.folga && b.worked === 0 ? 'folga' : (r === 0 ? '✓' : fmtSigned(r)), x.getPixelForValue(i), Math.max(chartArea.top + 12, top - 8));
+                if (!(b.extra > 0)) return;
+                const top = y.getPixelForValue(b.worked);
+                ctx.fillText(`+${fmtH(b.extra)}`, x.getPixelForValue(i), Math.max(chartArea.top + 12, top - 8));
             });
             ctx.restore();
         },
@@ -886,16 +1351,31 @@
         // KPIs
         const cur = cleanReport(state.reports[sel]);
         const curB = dayBalance(sel);
-        const bank = bankUntil(sel);
         $('kpi-tasks').textContent = cur.tasks.length;
         $('kpi-hours').textContent = fmtH(curB.worked);
-        $('kpi-hours-label').textContent = `HORAS NO DIA (ESPERADO ${fmtH(curB.expected)})`;
-        $('kpi-saldo').textContent = curB.counted ? fmtSigned(curB.saldo) : '—';
-        $('kpi-saldo').className = 'kpi-value ' + (!curB.counted ? '' : round1(curB.saldo) > 0 ? 'text-extra' : round1(curB.saldo) < 0 ? 'text-compensar' : '');
-        $('kpi-saldo-label').textContent = !curB.counted ? 'SALDO DO DIA (SEM HORAS)' : round1(curB.saldo) > 0 ? 'HORA EXTRA NO DIA' : round1(curB.saldo) < 0 ? 'A COMPENSAR NO DIA' : 'NA META';
-        $('kpi-bank').textContent = fmtSigned(bank);
-        $('kpi-bank').className = 'kpi-value ' + (round1(bank) > 0 ? 'text-extra' : round1(bank) < 0 ? 'text-compensar' : '');
-        $('kpi-bank-label').textContent = round1(bank) > 0 ? `BANCO: HORAS EXTRAS ATÉ ${fmtBR(sel).slice(0, 5)}` : round1(bank) < 0 ? `BANCO: A COMPENSAR ATÉ ${fmtBR(sel).slice(0, 5)}` : `BANCO DE HORAS ATÉ ${fmtBR(sel).slice(0, 5)}`;
+        $('kpi-hours-label').textContent = `HORAS NO DIA (META ${fmtH(curB.expected)})`;
+        if (curB.extra > 0) {
+            $('kpi-saldo').textContent = '+' + fmtH(curB.extra);
+            $('kpi-saldo-label').textContent = 'HORA EXTRA NO DIA';
+        } else if (curB.falta > 0) {
+            $('kpi-saldo').textContent = fmtH(curB.falta);
+            $('kpi-saldo-label').textContent = 'FALTAM PARA A META';
+        } else {
+            $('kpi-saldo').textContent = curB.expected > 0 ? '✓' : '—';
+            $('kpi-saldo-label').textContent = curB.expected > 0 ? 'META DO DIA ATINGIDA' : 'DIA SEM META';
+        }
+        $('kpi-saldo').className = 'kpi-value' + (curB.extra > 0 ? ' text-extra' : '');
+        if (usaBanco()) {
+            const bank = bankUntil(sel);
+            $('kpi-pct').textContent = fmtSigned(bank);
+            $('kpi-pct').className = 'kpi-value' + (bank > 0 ? ' text-extra' : '');
+            $('kpi-pct-label').textContent = `BANCO DE HORAS ATÉ ${fmtBR(sel).slice(0, 5)}`;
+        } else {
+            const pct = curB.expected > 0 ? Math.round(curB.worked / curB.expected * 100) : 0;
+            $('kpi-pct').textContent = curB.expected > 0 ? pct + '%' : '—';
+            $('kpi-pct').className = 'kpi-value' + (pct > 100 ? ' text-extra' : '');
+            $('kpi-pct-label').textContent = 'DA META DO DIA';
+        }
 
         Chart.defaults.color = '#8a8f98';
         Chart.defaults.borderColor = 'rgba(255,255,255,0.06)';
@@ -964,39 +1444,36 @@
             ch.update();
         }
 
+        updateExtraChart(sel);
         updateBankChart(sel);
     }
 
-    // Banco de horas do mês da data selecionada: saldo de cada dia + acumulado (desde o início)
+    // Só com "Usar banco de horas" ligado: linha do saldo acumulado nos dias com horas do mês
     function updateBankChart(sel) {
+        state.charts.bank?.destroy();
+        state.charts.bank = null;
+        $('bank-card').classList.toggle('d-none', !usaBanco());
+        if (!usaBanco()) return;
+
         const monthPrefix = sel.slice(0, 7);
         const [y, m] = monthPrefix.split('-').map(Number);
         $('bank-title').textContent = 'BANCO DE HORAS — ' + new Date(y, m - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).toUpperCase();
-
         const days = Object.keys(state.reports)
-            .filter(k => isDateKey(k) && k.startsWith(monthPrefix) && k <= sel && dayBalance(k).counted)
+            .filter(k => isDateKey(k) && k.startsWith(monthPrefix) && k <= sel && dayBalance(k).hasHours)
             .sort();
-        const inicioMes = round1(bankUntil(addDays(monthPrefix + '-01', -1)));
-        let running = inicioMes;
-        const saldos = [], acumulado = [];
-        for (const k of days) {
-            const s = round1(dayBalance(k).saldo);
-            running += s;
-            saldos.push(s);
-            acumulado.push(round1(running));
-        }
-
-        state.charts.bank?.destroy();
         $('bank-empty').classList.toggle('d-none', days.length > 0);
+        const inicio = bankUntil(addDays(monthPrefix + '-01', -1));
+        const acumulado = days.map(k => bankUntil(k));
+
         state.charts.bank = new Chart($('bankChart'), {
+            type: 'line',
             data: {
                 labels: days.map(k => `${weekdayName(k, 'short').replace('.', '')} ${fmtBR(k).slice(0, 5)}`),
-                datasets: [
-                    { type: 'bar', label: 'Saldo do dia', data: saldos, order: 2, borderRadius: 4,
-                      backgroundColor: saldos.map(s => s > 0 ? 'rgba(0,255,65,.75)' : s < 0 ? 'rgba(255,145,0,.85)' : 'rgba(138,143,152,.5)') },
-                    { type: 'line', label: 'Acumulado', data: acumulado, order: 1, borderColor: '#00f2ff', backgroundColor: '#00f2ff',
-                      borderWidth: 2, pointRadius: 3, tension: 0.25 },
-                ],
+                datasets: [{
+                    label: 'Banco', data: acumulado, borderColor: '#00f2ff', backgroundColor: 'rgba(0,242,255,.12)',
+                    fill: true, tension: 0.25, borderWidth: 2, pointRadius: 3,
+                    pointBackgroundColor: days.map(k => dayBalance(k).extra > 0 ? '#00ff41' : '#00f2ff'),
+                }],
             },
             options: {
                 responsive: true, maintainAspectRatio: false,
@@ -1004,19 +1481,75 @@
                     x: { grid: { display: false } },
                     y: { ticks: { callback: v => fmtSigned(v) }, grid: { color: c => c.tick.value === 0 ? 'rgba(255,255,255,.25)' : 'rgba(255,255,255,0.06)' } },
                 },
+                onClick: (_e, els) => { if (els[0]) goToDate(days[els[0].index]); },
                 plugins: {
                     legend: { display: false },
                     tooltip: {
-                        mode: 'index',
                         callbacks: {
-                            label: c => c.dataset.type === 'line'
-                                ? ` Banco acumulado: ${fmtSigned(c.raw)}`
-                                : ` ${saldoText(dayBalance(days[c.dataIndex]))}`,
-                            afterBody: items => {
-                                const b = dayBalance(days[items[0].dataIndex]);
-                                return `Lançado ${fmtH(b.worked)} de ${fmtH(b.expected)} esperadas`;
-                            },
-                            footer: () => inicioMes ? `Saldo vindo dos meses anteriores: ${fmtSigned(inicioMes)}` : '',
+                            label: c => ` Banco: ${fmtSigned(c.raw)}`,
+                            afterLabel: c => { const b = dayBalance(days[c.dataIndex]); return `Dia: lançado ${fmtH(b.worked)}, meta ${fmtH(b.expected)}${saldoText(b) ? ' (' + saldoText(b) + ')' : ''}`; },
+                            footer: () => inicio ? `Vindo dos meses anteriores: ${fmtSigned(inicio)}` : '',
+                        },
+                    },
+                },
+            },
+        });
+    }
+
+    // Hora extra dia a dia no mês da data selecionada. Só entram os dias que passaram da meta;
+    // sem nenhum, o card nem aparece. Não soma nem acumula entre dias.
+    const extraLabelPlugin = {
+        id: 'extraLabel',
+        afterDatasetsDraw(chart) {
+            const { ctx } = chart;
+            const meta = chart.getDatasetMeta(0);
+            ctx.save();
+            ctx.font = '700 12px Inter, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#00ff41';
+            meta.data.forEach((bar, i) => ctx.fillText('+' + fmtH(chart.data.datasets[0].data[i]), bar.x, bar.y - 6));
+            ctx.restore();
+        },
+    };
+
+    function updateExtraChart(sel) {
+        const monthPrefix = sel.slice(0, 7);
+        const [y, m] = monthPrefix.split('-').map(Number);
+        const days = Object.keys(state.reports)
+            .filter(k => isDateKey(k) && k.startsWith(monthPrefix) && dayBalance(k).extra > 0)
+            .sort();
+
+        state.charts.extra?.destroy();
+        state.charts.extra = null;
+        $('extra-card').classList.toggle('d-none', days.length === 0);
+        if (!days.length) return;
+
+        $('extra-title').textContent = 'HORAS EXTRAS — ' + new Date(y, m - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).toUpperCase();
+        const data = days.map(k => dayBalance(k).extra);
+        state.charts.extra = new Chart($('extraChart'), {
+            type: 'bar',
+            data: {
+                labels: days.map(k => `${weekdayName(k, 'short').replace('.', '')} ${fmtBR(k).slice(0, 5)}`),
+                datasets: [{
+                    label: 'Hora extra', data, maxBarThickness: 48, borderRadius: 6,
+                    backgroundColor: days.map(k => k === sel ? '#00ff41' : 'rgba(0,255,65,.55)'),
+                }],
+            },
+            plugins: [extraLabelPlugin],
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                layout: { padding: { top: 20 } },
+                scales: {
+                    x: { grid: { display: false } },
+                    y: { beginAtZero: true, suggestedMax: Math.max(...data) * 1.2, ticks: { callback: v => v + 'h' } },
+                },
+                onClick: (_e, els) => { if (els[0]) goToDate(days[els[0].index]); },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            title: items => { const k = days[items[0].dataIndex]; return `${weekdayName(k)} · ${fmtBR(k)}`; },
+                            label: c => { const b = dayBalance(days[c.dataIndex]); return ` +${fmtH(b.extra)} extra (lançado ${fmtH(b.worked)}, meta ${fmtH(b.expected)})`; },
                         },
                     },
                 },
@@ -1027,8 +1560,9 @@
     function destroyCharts() {
         state.charts.trend?.destroy();
         state.charts.dist?.destroy();
+        state.charts.extra?.destroy();
         state.charts.bank?.destroy();
-        state.charts = { trend: null, dist: null, bank: null };
+        state.charts = { trend: null, dist: null, extra: null, bank: null };
     }
 
     // ------------------------------------------------------------ Relatório
@@ -1056,8 +1590,9 @@
         lines.push(`✅ [TASKS] — total ${fmtH(totalHours(r.tasks))}`, ...taskLines(r));
         if ($('rep-hours').checked) {
             const b = dayBalance(sel);
-            lines.push('', '⏱️ [HORAS]', `Lançado ${fmtH(b.worked)} de ${fmtH(b.expected)} esperadas${b.counted ? ' → ' + saldoText(b) : ''}`);
-            lines.push(`Banco de horas: ${fmtSigned(bankUntil(sel))}`);
+            const s = saldoText(b);
+            lines.push('', '⏱️ [HORAS]', `Lançado ${fmtH(b.worked)} de ${fmtH(b.expected)} (meta)${s ? ' → ' + s : ''}`);
+            if (usaBanco()) lines.push(`Banco de horas: ${fmtSigned(bankUntil(sel))}`);
         }
         lines.push('', '📝 [NOTAS]', r.comments.trim() || 'Nenhuma nota.');
         if ($('rep-global').checked) lines.push('', '⏳ [ANOTAÇÕES GLOBAIS]', state.profile.queue.trim() || 'Vazio.');
@@ -1375,23 +1910,37 @@
         $('btn-copy').addEventListener('click', copyReport);
 
         $('queue-field').addEventListener('input', e => { state.profile.queue = e.target.value; autosize(e.target); markProfileDirty(); });
+        $('queue-mode-list').addEventListener('click', () => setQueueMode('list'));
+        $('queue-mode-text').addEventListener('click', () => setQueueMode('text'));
+        $('list-hide-done').checked = storageGet('mydaily_list_hide_done') === '1';
+        $('list-hide-done').addEventListener('change', e => { storageSet('mydaily_list_hide_done', e.target.checked ? '1' : '0'); renderList(); });
+        $('list-clear-done').addEventListener('click', clearDone);
+        $('list-new').addEventListener('keydown', e => {
+            if (e.key !== 'Enter') return;
+            e.preventDefault();
+            addListItem(e.target.value);
+            e.target.value = '';
+        });
+        setQueueMode(queueMode());
         $('notebook-field').addEventListener('input', e => { state.profile.notebook = e.target.value; autosize(e.target); markProfileDirty(); });
 
         $('tab-charts-btn').addEventListener('shown.bs.tab', updateCharts);
         document.querySelectorAll('#mainTabs [data-bs-toggle="tab"]').forEach(b => b.addEventListener('shown.bs.tab', autosizeAll));
+        document.fonts?.ready.then(autosizeAll);   // altura certa depois que as fontes carregam
         let resizeTimer;
         window.addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(autosizeAll, 150); });
 
         $('btn-settings').addEventListener('click', () => {
             $('set-meta').value = state.profile.settings.metaHoras;
             $('set-skip').checked = !!state.profile.settings.pularFimDeSemana;
+            $('set-bank').checked = !!state.profile.settings.usaBancoHoras;
             bootstrap.Modal.getOrCreateInstance($('settingsModal')).show();
         });
         $('settings-form').addEventListener('submit', e => {
             e.preventDefault();
             const meta = Number($('set-meta').value);
             if (!(meta > 0 && meta <= 24)) return toast('Meta deve ser entre 0,5 e 24 horas.', 'warning');
-            state.profile.settings = { ...state.profile.settings, metaHoras: meta, pularFimDeSemana: $('set-skip').checked };
+            state.profile.settings = { ...state.profile.settings, metaHoras: meta, pularFimDeSemana: $('set-skip').checked, usaBancoHoras: $('set-bank').checked };
             markProfileDirty();
             bootstrap.Modal.getOrCreateInstance($('settingsModal')).hide();
             goToDate(state.selected);
