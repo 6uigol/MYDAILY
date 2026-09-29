@@ -219,9 +219,10 @@
         .list-ghost i { flex: 0 0 20px; text-align: center; }
         .list-shortcuts { color: var(--muted); font-size: .78rem; line-height: 1.6; margin: 8px 2px 0; }
         .list-shortcuts kbd { color: var(--queue-color); background: rgba(255,145,0,.08); border: 1px solid rgba(255,145,0,.28); border-radius: 5px; padding: 1px 5px; font: inherit; }
-        .annotations-drop-zone { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; margin: 0 0 14px; padding: 10px 14px; border: 1px dashed rgba(255,145,0,.45); border-radius: 12px; color: var(--muted); background: rgba(255,145,0,.035); text-align: center; transition: .15s; }
-        .annotations-drop-zone.drop-ready { border-color: var(--queue-color); background: rgba(255,145,0,.10); color: var(--queue-color); }
-        .annotations-drop-zone.drag-over { border-style: solid; border-width: 2px; transform: scale(1.005); }
+        .list-tag.tag-draggable { cursor: grab; touch-action: none; user-select: none; }
+        .list-tag.tag-draggable:active { cursor: grabbing; }
+        .list-item.tag-drop-target { outline: 2px dashed var(--accent); outline-offset: 2px; background: var(--accent-glow); }
+        .tag-drag-ghost { position: fixed; z-index: 4000; pointer-events: none; padding: 5px 10px; border: 1px solid var(--accent); border-radius: 999px; color: var(--accent); background: var(--glass); box-shadow: 0 8px 22px rgba(0,0,0,.22); font-size: .82rem; font-weight: 700; }
         @media (hover: none) { .chip-btn { opacity: 1; } .list-sort-controls { display: flex; } }
 
         textarea.form-control.notebook-area {
@@ -455,10 +456,6 @@
                         </div>
                     </div>
 
-                    <div id="annotations-drop-zone" class="annotations-drop-zone" data-role="annotations-drop-zone" aria-label="Solte uma task aqui para copiá-la para as anotações">
-                        <i class="bi bi-box-arrow-in-down"></i><span>Arraste uma task para cá para copiá-la nas anotações</span>
-                    </div>
-
                     <div id="queue-list-wrap" class="d-none">
                         <div class="list-toolbar">
                             <input id="list-search" class="form-control form-control-sm" type="search" placeholder="Buscar nas anotações…" aria-label="Buscar nas anotações" style="max-width:260px">
@@ -474,7 +471,7 @@
                             <button type="button" class="btn btn-sm btn-outline-secondary" id="list-clear-done"><i class="bi bi-trash3 me-1"></i>Limpar concluídos</button>
                         </div>
                         <div id="queue-list" class="smart-list" title="Clique no texto para editar · Enter cria o próximo item · Backspace em item vazio apaga · marcar um item marca os subitens · → dia manda a task para o dia selecionado"></div>
-                        <div class="list-shortcuts"><kbd>Tab</kbd> tornar filho do item anterior · <kbd>Shift</kbd> + <kbd>Tab</kbd> promover um nível · <kbd>Enter</kbd> criar próximo item no mesmo nível</div>
+                        <div class="list-shortcuts"><kbd>Tab</kbd> tornar filho · <kbd>Shift</kbd> + <kbd>Tab</kbd> promover · <kbd>Enter</kbd> próximo item · arraste uma <kbd>#tag</kbd> para outro item para copiá-la</div>
                     </div>
 
                     <textarea id="queue-field" class="form-control queue-area" placeholder="Escreva suas anotações aqui... Use 1 -, 1.1 -, - ou [x] no começo da linha para virar lista."></textarea>
@@ -1163,7 +1160,7 @@
     function enableTaskSorting(list) {
         if (!window.Sortable) return;
         window.Sortable.create(list, {
-            group: { name: 'mydaily-day-tasks', pull: to => to.el.dataset.role === 'annotations-drop-zone' ? 'clone' : true, put: true },
+            group: { name: 'mydaily-day-tasks', pull: true, put: true },
             draggable: '.task-row',
             handle: '.task-drag-handle',
             animation: 160,
@@ -1172,17 +1169,13 @@
             touchStartThreshold: 5,
             onStart: () => {
                 document.querySelectorAll('.day-card').forEach(card => card.classList.add('task-drop-ready'));
-                $('annotations-drop-zone').classList.add('drop-ready');
             },
             onMove: evt => {
                 document.querySelectorAll('.day-card.task-drop-target').forEach(card => card.classList.remove('task-drop-target'));
-                $('annotations-drop-zone').classList.toggle('drag-over', evt.to.dataset.role === 'annotations-drop-zone');
                 evt.to.closest('.day-card')?.classList.add('task-drop-target');
             },
             onEnd: evt => {
                 document.querySelectorAll('.day-card.task-drop-ready, .day-card.task-drop-target').forEach(card => card.classList.remove('task-drop-ready', 'task-drop-target'));
-                $('annotations-drop-zone').classList.remove('drop-ready', 'drag-over');
-                if (evt.to.dataset.role === 'annotations-drop-zone') return;
                 if (evt.from === evt.to && evt.oldIndex === evt.newIndex) return;
                 const sourceDate = evt.from.dataset.date;
                 const targetDate = evt.to.dataset.date;
@@ -1207,39 +1200,6 @@
         state.historyEvents.set(date, events.slice(-100));
     }
 
-    function enableAnnotationDropZone() {
-        if (!window.Sortable) return;
-        window.Sortable.create($('annotations-drop-zone'), {
-            group: { name: 'mydaily-annotations', pull: false, put: ['mydaily-day-tasks'] },
-            draggable: '.task-row',
-            emptyInsertThreshold: 48,
-            onAdd: evt => {
-                const task = { desc: evt.item.querySelector('.t-desc')?.value || '', hour: evt.item.querySelector('.t-hour')?.value || '' };
-                evt.item.remove();
-                $('annotations-drop-zone').classList.remove('drop-ready', 'drag-over');
-                addTaskToAnnotations(task);
-            },
-        });
-    }
-
-    function addTaskToAnnotations(task) {
-        const desc = String(task.desc || '').trim();
-        if (!desc) return toast('Essa task está sem descrição e não pode ser copiada.', 'info');
-        const lines = getLines();
-        const last = lines.map(parseLine).filter(item => !item.blank).at(-1);
-        const text = desc + (task.hour.trim() ? ` · ${task.hour.trim()}` : '');
-        lines.push(formatLine({
-            indent: last?.indent || '', done: false, text,
-            num: last?.num ? nextNum(last.num) : last?.bullet ? null : '1',
-            bullet: !last?.num && last?.bullet ? last.bullet : null,
-        }));
-        saveLines(lines);
-        if (queueMode() === 'text') {
-            $('queue-field').value = queueTextForEditor(state.profile.queue);
-            autosize($('queue-field'));
-        } else renderList();
-        toast('Task copiada para as anotações.', 'success');
-    }
 
     function addTaskRow(list, k, t = { desc: '', hour: '' }) {
         const row = el('div', 'task-row');
@@ -1758,6 +1718,51 @@
         renderList();
     }
 
+    let annotationTagDrag = null;
+    function bindAnnotationTagDragging() {
+        const list = $('queue-list');
+        list.addEventListener('pointerdown', e => {
+            const chip = e.target.closest('.tag-draggable');
+            if (!chip || (e.button != null && e.button !== 0)) return;
+            annotationTagDrag = { tag: chip.dataset.tag, sourceIndex: Number(chip.dataset.itemIndex), pointerId: e.pointerId, x: e.clientX, y: e.clientY, active: false, target: null, ghost: null };
+        });
+        document.addEventListener('pointermove', e => {
+            const drag = annotationTagDrag;
+            if (!drag || drag.pointerId !== e.pointerId) return;
+            if (!drag.active && Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 7) return;
+            if (!drag.active) {
+                drag.active = true;
+                drag.ghost = el('div', 'tag-drag-ghost', '#' + drag.tag);
+                document.body.append(drag.ghost);
+            }
+            e.preventDefault();
+            drag.ghost.style.left = (e.clientX + 14) + 'px';
+            drag.ghost.style.top = (e.clientY + 14) + 'px';
+            const hit = document.elementFromPoint(e.clientX, e.clientY)?.closest('.list-item[data-idx]');
+            if (drag.target && drag.target !== hit) drag.target.classList.remove('tag-drop-target');
+            drag.target = hit && Number(hit.dataset.idx) !== drag.sourceIndex ? hit : null;
+            drag.target?.classList.add('tag-drop-target');
+        });
+        const finish = e => {
+            const drag = annotationTagDrag;
+            if (!drag || (e.pointerId != null && drag.pointerId !== e.pointerId)) return;
+            if (drag.active && drag.target?.isConnected) {
+                const targetIndex = Number(drag.target.dataset.idx);
+                const target = getLines().map(parseLine)[targetIndex];
+                if (target?.tags?.includes(drag.tag)) toast(`O item já tem a tag #${drag.tag}.`, 'info');
+                else {
+                    updateListMetadata(targetIndex, item => { item.tags = [...(item.tags || []), drag.tag]; });
+                    toast(`Tag #${drag.tag} copiada para a anotação.`, 'success');
+                }
+            }
+            drag.target?.classList.remove('tag-drop-target');
+            drag.ghost?.remove();
+            annotationTagDrag = null;
+        };
+        document.addEventListener('pointerup', finish);
+        document.addEventListener('pointercancel', finish);
+    }
+
     function moveListSibling(from, to) {
         if (from === to) return;
         const lines = getLines();
@@ -2149,7 +2154,13 @@
                 const p = el('span', `list-tag priority-${it.priority}`, ({ high: 'Alta', medium: 'Média', low: 'Baixa' })[it.priority]);
                 row.append(p);
             }
-            (it.tags || []).forEach(tag => row.append(el('span', 'list-tag', '#' + tag)));
+            (it.tags || []).forEach(tag => {
+                const chip = el('span', 'list-tag tag-draggable', '#' + tag);
+                chip.dataset.tag = tag;
+                chip.dataset.itemIndex = i;
+                chip.title = `Arraste #${tag} para outra anotação para copiar`;
+                row.append(chip);
+            });
             if (checkable) {
                 const priority = el('button', 'list-meta-btn' + (it.priority ? ` priority-${it.priority}` : ''));
                 priority.type = 'button'; priority.title = 'Alterar prioridade'; priority.textContent = 'Prioridade';
@@ -3046,7 +3057,7 @@
         $('queue-field').addEventListener('input', e => { state.profile.queue = mergeQueueEditorText(state.profile.queue, e.target.value); autosize(e.target); markProfileDirty(); });
         $('queue-mode-list').addEventListener('click', () => setQueueMode('list'));
         $('queue-mode-text').addEventListener('click', () => setQueueMode('text'));
-        enableAnnotationDropZone();
+        bindAnnotationTagDragging();
         $('list-search').addEventListener('input', renderList);
         $('task-hours-filter').value = storageGet('mydaily_task_hours_filter') || 'all';
         $('task-hours-filter').addEventListener('change', e => { storageSet('mydaily_task_hours_filter', e.target.value); renderDays(); });
