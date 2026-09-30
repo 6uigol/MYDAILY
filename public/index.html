@@ -493,7 +493,7 @@
             <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-logs" type="button">DIAS</button></li>
             <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-charts" type="button" id="tab-charts-btn">ESTATÍSTICAS</button></li>
             <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-note" type="button">CADERNO</button></li>
-            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-links" type="button" id="tab-links-btn" title="Alt+L">LINKS</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-links" type="button" id="tab-links-btn">LINKS</button></li>
         </ul>
 
         <div class="tab-content">
@@ -593,12 +593,15 @@
                 <div class="glass-card p-3 p-md-4">
                     <div class="links-toolbar">
                         <input id="links-search" class="form-control form-control-sm" type="search" placeholder="Buscar link…" aria-label="Buscar link">
-                        <button type="button" class="btn btn-sm btn-cyber-primary" id="links-add"><i class="bi bi-plus-lg me-1"></i>Novo link</button>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-sm btn-outline-info" id="links-open-all"><i class="bi bi-box-arrow-up-right me-1"></i>Abrir todos</button>
+                            <button type="button" class="btn btn-sm btn-cyber-primary" id="links-add"><i class="bi bi-plus-lg me-1"></i>Novo link</button>
+                        </div>
                     </div>
                     <div id="links-grid" class="links-grid"></div>
                     <div class="links-hint">
                         <kbd>Alt</kbd> + <kbd>1</kbd>…<kbd>9</kbd> abre o link com esse atalho de qualquer tela ·
-                        <kbd>Ctrl</kbd> + <kbd>K</kbd> busca rápida · <kbd>Alt</kbd> + <kbd>L</kbd> vem para esta aba · arraste para reordenar
+                        <kbd>Ctrl</kbd> + <kbd>K</kbd> busca rápida · arraste para reordenar
                     </div>
                 </div>
             </div>
@@ -742,16 +745,8 @@
                 <input type="text" id="link-name" class="form-control mb-3" maxlength="40" placeholder="Ex.: VSTS, Painel da loja, NF-e" required>
                 <label class="form-label small text-secondary" for="link-url">Endereço</label>
                 <input type="text" id="link-url" class="form-control mb-3" inputmode="url" autocomplete="off" placeholder="https://… (http, https ou ftp)" required>
-                <div class="row g-3">
-                    <div class="col-6">
-                        <label class="form-label small text-secondary" for="link-key">Atalho</label>
-                        <select id="link-key" class="form-select"></select>
-                    </div>
-                    <div class="col-6">
-                        <label class="form-label small text-secondary" for="link-icon">Ícone (emoji, opcional)</label>
-                        <input type="text" id="link-icon" class="form-control" maxlength="8" placeholder="🚀">
-                    </div>
-                </div>
+                <label class="form-label small text-secondary" for="link-key">Atalho</label>
+                <select id="link-key" class="form-select"></select>
                 <div class="small text-secondary mt-3">Não coloque usuário e senha no endereço: os links ficam salvos na sua conta.</div>
             </div>
             <div class="modal-footer border-0 pt-0 d-flex">
@@ -2522,7 +2517,7 @@
         return LINK_COLORS[h % LINK_COLORS.length];
     }
     function linkAvatar(l) {
-        const av = el('span', 'link-avatar', l.icon || ([...l.name.trim()][0] || '?').toUpperCase());
+        const av = el('span', 'link-avatar', ([...l.name.trim()][0] || '?').toUpperCase());
         av.style.background = linkColor(l.name);
         return av;
     }
@@ -2574,7 +2569,6 @@
         $('link-modal-title').textContent = l ? 'EDITAR LINK' : 'NOVO LINK';
         $('link-name').value = l?.name || '';
         $('link-url').value = l?.url || '';
-        $('link-icon').value = l?.icon || '';
         const sel = $('link-key');
         sel.replaceChildren(new Option('Sem atalho', ''));
         for (const k of LINK_KEYS) {
@@ -2595,12 +2589,11 @@
         if (!name) return toast('Dê um nome para o link.', 'warning');
         if (!url) return toast('Endereço inválido. Use http, https ou ftp.', 'warning');
         const key = $('link-key').value;
-        const icon = [...$('link-icon').value.trim()].slice(0, 2).join('');
-        const links = getLinks().map(x => ({ ...x }));
+        const links = getLinks().map(({ icon, ...x }) => x);   // "icon" (emoji) não é mais usado
         const existing = links.find(x => x.id === editingLinkId);
         // atalho já usado: o outro link fica com o atalho antigo deste (troca) ou sem atalho
         if (key) links.forEach(x => { if (x.key === key && x.id !== editingLinkId) x.key = existing?.key || ''; });
-        const data = { name, url, key, icon };
+        const data = { name, url, key };
         if (existing) Object.assign(existing, data);
         else links.push({ id: notebookId(), ...data });
         setLinks(links);
@@ -2613,6 +2606,22 @@
         if (!l || !confirm(`Excluir o link "${l.name}"?`)) return;
         setLinks(getLinks().filter(x => x.id !== l.id));
         bootstrap.Modal.getOrCreateInstance($('linkModal')).hide();
+    }
+
+    // Abre todos os links (os filtrados pela busca, se houver) em abas novas.
+    // O navegador costuma permitir só a 1ª aba por clique até você liberar pop-ups para o site.
+    function openAllLinks() {
+        const q = $('links-search').value.trim().toLocaleLowerCase('pt-BR');
+        const links = getLinks().filter(l => !q || `${l.name} ${l.url}`.toLocaleLowerCase('pt-BR').includes(q));
+        if (!links.length) return toast('Nenhum link para abrir.', 'info');
+        if (links.length > 10 && !confirm(`Abrir ${links.length} links em abas novas?`)) return;
+        let blocked = 0;
+        for (const l of links) {
+            const w = window.open(l.url, '_blank');
+            if (w) w.opener = null; else blocked++;
+        }
+        if (blocked) toast(`O navegador bloqueou ${blocked} de ${links.length} abas. Clique no ícone de pop-up bloqueado na barra de endereço, escolha "Sempre permitir" e clique em Abrir todos de novo.`, 'warning');
+        else toast(`${links.length} link(s) abertos.`, 'success');
     }
 
     function openLinkByKey(key) {
@@ -3250,7 +3259,7 @@
                     if (!url || !name || known.has(url)) continue;
                     const key = LINK_KEYS.includes(l.key) && !usedKeys.has(l.key) ? l.key : '';
                     if (key) usedKeys.add(key);
-                    current.push({ id: notebookId(), name, url, key, icon: [...String(l.icon ?? '')].slice(0, 2).join('') });
+                    current.push({ id: notebookId(), name, url, key });
                     known.add(url);
                 }
                 p.settings.links = current;
@@ -3283,7 +3292,7 @@
                 if (!url || !name) return null;
                 const key = LINK_KEYS.includes(l.key) && !usedKeys.has(l.key) ? l.key : '';
                 if (key) usedKeys.add(key);
-                return { id: String(l.id || notebookId()), name, url, key, icon: [...String(l.icon ?? '')].slice(0, 2).join('') };
+                return { id: String(l.id || notebookId()), name, url, key };
             }).filter(Boolean);
         }
         return s;
@@ -3650,6 +3659,7 @@
 
         // Links
         $('links-add').addEventListener('click', () => openLinkModal());
+        $('links-open-all').addEventListener('click', openAllLinks);
         $('links-search').addEventListener('input', renderLinks);
         $('link-form').addEventListener('submit', saveLinkFromForm);
         $('link-delete').addEventListener('click', deleteLinkFromForm);
@@ -3703,9 +3713,6 @@
             } else if (e.altKey && !e.ctrlKey && !e.metaKey && digit) {
                 e.preventDefault();
                 openLinkByKey(digit);
-            } else if (e.altKey && !e.ctrlKey && !e.metaKey && e.code === 'KeyL') {
-                e.preventDefault();
-                showTab('#tab-links');
             } else if (e.altKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
                 e.preventDefault();
                 goToDate(stepDay(state.selected, e.key === 'ArrowLeft' ? -1 : 1));
