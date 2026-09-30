@@ -1110,6 +1110,25 @@
             const col = el('div', 'col-12 col-lg-4');
             const card = el('div', 'glass-card day-card h-100 p-4' + (selected ? ' selected' : ''));
             card.dataset.date = k;
+            card.addEventListener('dragover', e => {
+                if (!e.dataTransfer?.types.includes('application/x-mydaily-annotation')) return;
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'copy';
+                card.classList.add('task-drop-target');
+            }, true);
+            card.addEventListener('dragleave', e => {
+                if (!card.contains(e.relatedTarget)) card.classList.remove('task-drop-target');
+            }, true);
+            card.addEventListener('drop', e => {
+                if (!e.dataTransfer?.types.includes('application/x-mydaily-annotation')) return;
+                e.preventDefault();
+                e.stopPropagation();
+                card.classList.remove('task-drop-target');
+                try {
+                    const annotation = JSON.parse(e.dataTransfer.getData('application/x-mydaily-annotation'));
+                    if (annotation.text?.trim()) sendToDay(annotation.text, k);
+                } catch (error) { console.warn('Não foi possível copiar a anotação para o dia.', error); }
+            }, true);
 
             const head = el('div', 'd-flex justify-content-between align-items-start mb-3 gap-2');
             const title = el('div');
@@ -2025,15 +2044,15 @@
     const taskNumberOf = text => text.match(TASK_RE)?.[1] || null;
     const dayHasTask = (k, n) => cleanReport(state.reports[k]).tasks.some(t => taskKey(t.desc) === 'task#' + n);
 
-    function sendToDay(text) {
-        const k = state.selected;
+    function sendToDay(text, date = state.selected) {
+        const k = date;
         const r = report(k);
         r.tasks = cleanReport(r).tasks;
         r.tasks.push({ desc: text.trim(), hour: '' });
         markDirty(k);
         renderDays();
         renderList();
-        toast(`Adicionada às tasks de ${fmtBR(k)}. Falta preencher as horas.`, 'success');
+        toast(`Cópia da anotação adicionada às tasks de ${fmtBR(k)}. A anotação original foi mantida.`, 'success');
     }
 
     let pendingEdit = null;
@@ -2146,12 +2165,26 @@
             const row = el('div', 'list-item' + (it.done ? ' done' : '') + (isHeading(it) ? ' heading' : ''));
             row.style.setProperty('--lvl', it.level);
             row.dataset.idx = i;
-            row.draggable = !!it.num;
-            row.addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', String(i)); e.dataTransfer.effectAllowed = 'move'; row.classList.add('dragging'); });
-            row.addEventListener('dragend', () => row.classList.remove('dragging'));
+            row.draggable = checkable;
+            row.addEventListener('dragstart', e => {
+                e.dataTransfer.setData('text/plain', String(i));
+                e.dataTransfer.setData('application/x-mydaily-annotation', JSON.stringify({ text: it.text }));
+                e.dataTransfer.effectAllowed = 'copyMove';
+                row.classList.add('dragging');
+                document.querySelectorAll('.day-card').forEach(card => card.classList.add('task-drop-ready'));
+            });
+            row.addEventListener('dragend', () => {
+                row.classList.remove('dragging');
+                document.querySelectorAll('.day-card.task-drop-ready, .day-card.task-drop-target').forEach(card => card.classList.remove('task-drop-ready', 'task-drop-target'));
+            });
             row.addEventListener('dragover', e => { if (row.draggable) { e.preventDefault(); row.classList.add('drop-target'); } });
             row.addEventListener('dragleave', () => row.classList.remove('drop-target'));
-            row.addEventListener('drop', e => { e.preventDefault(); row.classList.remove('drop-target'); moveListSibling(Number(e.dataTransfer.getData('text/plain')), i); });
+            row.addEventListener('drop', e => {
+                e.preventDefault();
+                row.classList.remove('drop-target');
+                const source = getLines().map(parseLine)[Number(e.dataTransfer.getData('text/plain'))];
+                if (source?.num && it.num) moveListSibling(Number(e.dataTransfer.getData('text/plain')), i);
+            });
             if (checkable) {
                 const cb = el('button', 'list-check');
                 cb.type = 'button';
@@ -2684,7 +2717,7 @@
             if (usaBanco()) lines.push(`Banco de horas: ${fmtSigned(bankUntil(sel))}`);
         }
         lines.push('', '📝 [NOTAS]', r.comments.trim() || 'Nenhuma nota.');
-        if ($('rep-global').checked) lines.push('', '⏳ [ANOTAÇÕES GLOBAIS]', state.profile.queue.trim() || 'Vazio.');
+        if ($('rep-global').checked) lines.push('', '⏳ [ANOTAÇÕES GLOBAIS]', queueTextForEditor(state.profile.queue).trim() || 'Vazio.');
         return lines.join('\n');
     }
 
