@@ -3137,30 +3137,64 @@
             toast('CSV da semana selecionada exportado.', 'success');
         } catch (e) { toast('Falha ao exportar CSV: ' + (e.code || e.message), 'danger'); }
     }
-    function htmlTable(header, rows, emptyText) {
-        const head = '<tr>' + header.map(h => `<th>${escapeHtml(h)}</th>`).join('') + '</tr>';
-        const body = rows.length
-            ? rows.map(row => '<tr>' + row.map(v => `<td>${escapeHtml(v)}</td>`).join('') + '</tr>').join('')
-            : `<tr><td colspan="${header.length}" class="empty">${escapeHtml(emptyText)}</td></tr>`;
-        return `<table>${head}${body}</table>`;
+    // PDF baixado direto como arquivo (sem abrir janela de impressão).
+    // A biblioteca só é carregada no primeiro clique, para não pesar na abertura do app.
+    let pdfLibPromise = null;
+    function loadScript(src) {
+        return new Promise((resolve, reject) => {
+            const s = document.createElement('script');
+            s.src = src;
+            s.onload = resolve;
+            s.onerror = () => reject(new Error('sem conexão para carregar o gerador de PDF'));
+            document.head.append(s);
+        });
+    }
+    function loadPdfLib() {
+        return pdfLibPromise ??= loadScript('https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js')
+            .then(() => loadScript('https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js'))
+            .catch(e => { pdfLibPromise = null; throw e; });
     }
     async function exportPdf() {
-        const win = window.open('', '_blank');
-        if (!win) return toast('Permita pop-ups para gerar o PDF.', 'warning');
+        const btn = $('export-pdf');
+        btn.disabled = true;
         try {
-            const { taskRows, commentRows, week } = await exportReportRows();
-            const css = 'body{font:14px Arial;padding:24px;color:#222}h1{font-size:20px;margin:0 0 16px}h2{font-size:16px;margin:28px 0 8px}' +
-                'table{width:100%;border-collapse:collapse}td,th{border:1px solid #bbb;padding:6px;text-align:left;vertical-align:top;white-space:pre-wrap}' +
-                'th{background:#eee}td:first-child{white-space:nowrap;width:90px}.empty{color:#888;font-style:italic}@media print{body{padding:0}}';
-            win.document.write(`<html><head><meta charset="utf-8"><title>MYDAILY — semana</title><style>${css}</style></head><body>` +
-                `<h1>MYDAILY — Semana ${fmtBR(week[0])} a ${fmtBR(week.at(-1))}</h1>` +
-                `<h2>Tasks</h2>${htmlTable(TASK_HEADER, taskRows, 'Nenhuma task na semana.')}` +
-                `<h2>Comentários</h2>${htmlTable(COMMENT_HEADER, commentRows, 'Nenhum comentário na semana.')}` +
-                `<script>onload=()=>print()<\/script></body></html>`);
-            win.document.close();
-        } catch (e) { toast('Falha ao gerar PDF: ' + (e.code || e.message), 'danger'); }
+            const [{ taskRows, commentRows, week }] = await Promise.all([exportReportRows(), loadPdfLib()]);
+            const pdf = new window.jspdf.jsPDF({ unit: 'pt', format: 'a4' });
+            const left = 40;
+            const table = {
+                theme: 'grid', margin: { left, right: 40 },
+                styles: { fontSize: 10, cellPadding: 5, valign: 'top', textColor: [34, 34, 34] },
+                headStyles: { fillColor: [61, 90, 254], textColor: 255, fontStyle: 'bold' },
+            };
+            pdf.setFontSize(16);
+            pdf.text(`MYDAILY — Semana ${fmtBR(week[0])} a ${fmtBR(week.at(-1))}`, left, 50);
+
+            pdf.setFontSize(12);
+            pdf.text('Tasks', left, 80);
+            pdf.autoTable({
+                ...table, startY: 88, head: [TASK_HEADER],
+                body: taskRows.length ? taskRows : [['', 'Nenhuma task na semana.', '']],
+                columnStyles: { 0: { cellWidth: 72 }, 2: { cellWidth: 50, halign: 'center' } },
+            });
+
+            let y = pdf.lastAutoTable.finalY + 30;
+            if (y > pdf.internal.pageSize.getHeight() - 90) { pdf.addPage(); y = 50; }
+            pdf.setFontSize(12);
+            pdf.text('Comentários', left, y);
+            pdf.autoTable({
+                ...table, startY: y + 8, head: [COMMENT_HEADER],
+                body: commentRows.length ? commentRows : [['', 'Nenhum comentário na semana.']],
+                columnStyles: { 0: { cellWidth: 72 } },
+            });
+
+            pdf.save(`mydaily-semana-${week[0]}-${week.at(-1)}.pdf`);
+            toast('PDF da semana baixado.', 'success');
+        } catch (e) {
+            toast('Falha ao gerar PDF: ' + (e.code || e.message), 'danger');
+        } finally {
+            btn.disabled = false;
+        }
     }
-    function escapeHtml(value) { return String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]); }
 
     // Monta o backup a partir da nuvem (dias) + perfil atual. Usado no "Exportar" e antes de substituir tudo.
     async function buildBackup() {
