@@ -86,6 +86,9 @@
         html[data-bs-theme="light"] #app .list-ghost { color: #8a4500; }
         html[data-bs-theme="light"] #app .chip-btn.added { color: #137333; background: #e6f4ea; border-color: #9bc9a8; }
         html[data-bs-theme="light"] #app ::selection { background: #c9d7ff; color: #172334; }
+        html[data-bs-theme="light"] .link-tile { background: #fff; }
+        html[data-bs-theme="light"] .link-tile:hover { background: #eef2ff; }
+        html[data-bs-theme="light"] .link-host { color: #526174; }
 
         body {
             background-color: var(--bg);
@@ -202,6 +205,14 @@
         .chip-btn { flex: 0 0 auto; font-size: .75rem; font-weight: 700; color: var(--accent); background: rgba(61,90,254,.1); border: 1px solid rgba(61,90,254,.4); border-radius: 8px; padding: 2px 8px; opacity: 0; transition: opacity .15s; }
         .list-item:hover .chip-btn, .chip-btn:focus { opacity: 1; }
         .chip-btn.added { color: var(--save-green); border-color: rgba(0,255,65,.4); background: rgba(0,255,65,.08); opacity: 1; }
+        .list-grip { flex: 0 0 16px; margin-top: 3px; color: var(--muted); opacity: .45; cursor: grab; touch-action: none; user-select: none; }
+        .list-item:hover .list-grip { opacity: 1; }
+        .list-grip:active { cursor: grabbing; color: var(--terminal); }
+        .list-text { user-select: text; }
+        .list-copy-btn { flex: 0 0 30px; width: 30px; height: 30px; padding: 0; border: 1px solid var(--border); border-radius: 8px; color: var(--muted); background: transparent; }
+        .list-copy-btn:hover, .list-copy-btn:focus { color: var(--terminal); border-color: var(--terminal); }
+        .list-copy-btn.copied { color: var(--save-green); border-color: var(--save-green); }
+        @media (hover: none) { .list-grip { display: none; } }   /* arrastar com o dedo não funciona nesse tipo de arraste */
         .list-level-btn { flex: 0 0 30px; width: 30px; height: 30px; padding: 0; border: 1px solid rgba(255,145,0,.22); border-radius: 8px; color: var(--queue-color); background: rgba(255,145,0,.06); opacity: .72; }
         .list-level-btn:hover, .list-level-btn:focus { opacity: 1; border-color: var(--queue-color); background: rgba(255,145,0,.14); }
         .list-meta-btn { flex: 0 0 auto; min-height: 30px; padding: 3px 7px; border: 1px solid var(--border); border-radius: 8px; color: var(--muted); background: rgba(255,255,255,.035); font-size: .72rem; }
@@ -242,6 +253,36 @@
         .history-note-label { color: var(--muted); font-size: .68rem; font-weight: 700; letter-spacing: .08em; margin-bottom: 5px; }
         .history-note-value { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 240px; overflow: auto; font-size: .84rem; }
         @media (max-width: 575.98px) { .history-note-compare { grid-template-columns: 1fr; } }
+
+        /* Links do dia a dia */
+        .links-toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+        .links-toolbar input { max-width: 360px; flex: 1 1 200px; }
+        .links-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+        .link-tile { position: relative; border: 1px solid var(--border); border-radius: 16px; background: rgba(127,127,127,.05); transition: border-color .15s, background .15s, transform .15s; min-width: 0; }
+        .link-tile:hover { border-color: var(--accent); background: var(--accent-glow); transform: translateY(-2px); }
+        .link-tile.sortable-ghost { opacity: .35; }
+        .link-main { display: flex; align-items: center; gap: 12px; padding: 14px 40px 14px 14px; color: inherit; text-decoration: none; min-width: 0; }
+        .link-main:hover { color: inherit; }
+        .link-avatar { flex: 0 0 42px; width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; font-weight: 800; font-size: 1.25rem; color: #fff; }
+        .link-info { min-width: 0; flex: 1; }
+        .link-name { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .link-host { font-family: 'Fira Code', monospace; font-size: .72rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .link-key { position: absolute; right: 10px; bottom: 8px; font-family: 'Fira Code', monospace; font-size: .68rem; color: var(--terminal); border: 1px solid var(--border); border-radius: 6px; padding: 0 5px; }
+        .link-edit { position: absolute; top: 6px; right: 6px; width: 30px; height: 30px; border: 0; border-radius: 8px; background: transparent; color: var(--muted); opacity: 0; }
+        .link-tile:hover .link-edit, .link-edit:focus { opacity: 1; }
+        .link-edit:hover { color: var(--accent); background: rgba(127,127,127,.12); }
+        .link-empty { grid-column: 1 / -1; text-align: center; color: var(--muted); padding: 36px 12px; border: 1px dashed var(--border); border-radius: 16px; }
+        .links-hint { color: var(--muted); font-size: .78rem; line-height: 1.8; margin-top: 16px; }
+        .links-hint kbd, .palette-foot kbd { color: var(--terminal); background: rgba(127,127,127,.1); border: 1px solid var(--border); border-radius: 5px; padding: 1px 5px; font: inherit; font-size: .72rem; }
+        .palette-dialog { margin-top: 12vh; }
+        .palette-results { max-height: 52vh; overflow-y: auto; margin-top: 10px; }
+        .palette-item { display: flex; align-items: center; gap: 12px; padding: 9px 12px; border-radius: 10px; }
+        .palette-item.active { background: var(--accent-glow); box-shadow: inset 0 0 0 1px var(--accent); }
+        .palette-item .link-avatar { flex-basis: 32px; width: 32px; height: 32px; font-size: 1rem; border-radius: 9px; }
+        .palette-item .palette-key { margin-left: auto; font-family: 'Fira Code', monospace; font-size: .7rem; color: var(--muted); white-space: nowrap; }
+        .palette-empty { color: var(--muted); padding: 14px 12px; }
+        .palette-foot { color: var(--muted); font-size: .72rem; margin-top: 10px; }
+        @media (hover: none) { .link-edit { opacity: 1; } }
 
         .chart-container { position: relative; height: 340px; width: 100%; }
         .chart-empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: .9rem; pointer-events: none; }
@@ -294,7 +335,7 @@
             /* abas numa linha só, divididas igualmente */
             #mainTabs { flex-wrap: nowrap; gap: 6px !important; margin-bottom: 16px !important; }
             #mainTabs .nav-item { flex: 1; }
-            #mainTabs .nav-link { width: 100%; padding: 10px 4px; font-size: .8rem; }
+            #mainTabs .nav-link { width: 100%; padding: 10px 2px; font-size: .72rem; }
 
             .chart-container { height: 300px !important; }
             #extraChart, #bankChart { max-height: 240px; }
@@ -333,8 +374,25 @@
             .list-item { gap: 8px; padding: 8px 6px; padding-left: calc(6px + var(--lvl, 0) * 16px); }
             .list-check { flex-basis: 24px; width: 24px; height: 24px; margin-top: 1px; }   /* alvo de toque maior */
             .list-text { font-size: .95rem; }
+            /* texto ocupa a 1ª linha inteira; botões (↑↓, prioridade, tags, nível, → dia) descem para a linha de baixo */
+            .list-item { flex-wrap: wrap; row-gap: 6px; }
+            .list-item > .list-text, .list-item > .list-edit { flex: 1 1 calc(100% - 80px); }
+            .list-item > .list-sort-controls:first-of-type { margin-left: 32px; }
+            .list-sort-controls button, .list-level-btn { width: 30px; height: 28px; flex-basis: 30px; }
+            .list-meta-btn, .chip-btn { min-height: 28px; padding: 2px 8px; font-size: .7rem; }
+            .list-tag { font-size: .68rem; }
+            .list-shortcuts { display: none; }   /* Tab/Shift+Tab não existem no teclado do celular */
             .list-toolbar { gap: 10px; }
             .list-toolbar .btn { flex: 1 1 auto; }
+
+            /* links: 2 por linha, ícone em cima */
+            .links-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+            .link-main { flex-direction: column; text-align: center; gap: 8px; padding: 16px 8px 14px; }
+            .link-info { width: 100%; }
+            .link-key { display: none; }
+            .links-toolbar input { max-width: none; }
+            .links-hint { display: none; }   /* atalhos de teclado não se aplicam no celular */
+            .palette-dialog { margin-top: 8px; }
 
             .toast-wrap { left: 12px; right: 12px; bottom: calc(52px + env(safe-area-inset-bottom)); }
             .modal-fullscreen-sm-down .modal-content { border-radius: 0; }
@@ -415,7 +473,7 @@
                         <li><h6 class="dropdown-header text-truncate" style="max-width:260px" id="user-email"></h6></li>
                         <li><button type="button" class="dropdown-item" id="btn-settings"><i class="bi bi-gear me-2"></i>Configurações</button></li>
                         <li><button type="button" class="dropdown-item" id="btn-export"><i class="bi bi-download me-2"></i>Exportar backup (.json)</button></li>
-                        <li><button type="button" class="dropdown-item" id="btn-import"><i class="bi bi-upload me-2"></i>Importar backup (.json / .txt)</button></li>
+                        <li><button type="button" class="dropdown-item" id="btn-import"><i class="bi bi-upload me-2"></i>Importar backup (substitui tudo)</button></li>
                         <li><hr class="dropdown-divider"></li>
                         <li><button type="button" class="dropdown-item text-danger" id="btn-logout"><i class="bi bi-box-arrow-right me-2"></i>Sair</button></li>
                     </ul>
@@ -435,6 +493,7 @@
             <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-logs" type="button">DIAS</button></li>
             <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-charts" type="button" id="tab-charts-btn">ESTATÍSTICAS</button></li>
             <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-note" type="button">CADERNO</button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-links" type="button" id="tab-links-btn" title="Alt+L">LINKS</button></li>
         </ul>
 
         <div class="tab-content">
@@ -527,6 +586,20 @@
                         </div>
                     </div>
                     <textarea id="notebook-field" class="form-control notebook-area" placeholder="Caderno..."></textarea>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="tab-links">
+                <div class="glass-card p-3 p-md-4">
+                    <div class="links-toolbar">
+                        <input id="links-search" class="form-control form-control-sm" type="search" placeholder="Buscar link…" aria-label="Buscar link">
+                        <button type="button" class="btn btn-sm btn-cyber-primary" id="links-add"><i class="bi bi-plus-lg me-1"></i>Novo link</button>
+                    </div>
+                    <div id="links-grid" class="links-grid"></div>
+                    <div class="links-hint">
+                        <kbd>Alt</kbd> + <kbd>1</kbd>…<kbd>9</kbd> abre o link com esse atalho de qualquer tela ·
+                        <kbd>Ctrl</kbd> + <kbd>K</kbd> busca rápida · <kbd>Alt</kbd> + <kbd>L</kbd> vem para esta aba · arraste para reordenar
+                    </div>
                 </div>
             </div>
         </div>
@@ -652,6 +725,51 @@
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
                 <button type="button" class="btn btn-danger" id="notebook-delete-confirm">Excluir aba</button>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- LINK (criar / editar) -->
+<div class="modal fade" id="linkModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
+        <form class="modal-content glass-card" id="link-form" novalidate>
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="link-modal-title">NOVO LINK</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <label class="form-label small text-secondary" for="link-name">Nome</label>
+                <input type="text" id="link-name" class="form-control mb-3" maxlength="40" placeholder="Ex.: VSTS, Painel da loja, NF-e" required>
+                <label class="form-label small text-secondary" for="link-url">Endereço</label>
+                <input type="text" id="link-url" class="form-control mb-3" inputmode="url" autocomplete="off" placeholder="https://… (http, https ou ftp)" required>
+                <div class="row g-3">
+                    <div class="col-6">
+                        <label class="form-label small text-secondary" for="link-key">Atalho</label>
+                        <select id="link-key" class="form-select"></select>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label small text-secondary" for="link-icon">Ícone (emoji, opcional)</label>
+                        <input type="text" id="link-icon" class="form-control" maxlength="8" placeholder="🚀">
+                    </div>
+                </div>
+                <div class="small text-secondary mt-3">Não coloque usuário e senha no endereço: os links ficam salvos na sua conta.</div>
+            </div>
+            <div class="modal-footer border-0 pt-0 d-flex">
+                <button type="button" class="btn btn-outline-danger me-auto d-none" id="link-delete"><i class="bi bi-trash3 me-1"></i>Excluir</button>
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-cyber-primary">Salvar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- BUSCA RÁPIDA (Ctrl+K) -->
+<div class="modal fade" id="paletteModal" tabindex="-1">
+    <div class="modal-dialog palette-dialog">
+        <div class="modal-content glass-card p-3">
+            <input type="text" id="palette-input" class="form-control form-control-lg" placeholder="Abrir link ou ir para uma aba…" autocomplete="off" aria-label="Busca rápida">
+            <div id="palette-results" class="palette-results" role="listbox"></div>
+            <div class="palette-foot"><kbd>↑</kbd><kbd>↓</kbd> escolher · <kbd>Enter</kbd> abrir · <kbd>Esc</kbd> fechar</div>
         </div>
     </div>
 </div>
@@ -1508,6 +1626,7 @@
         renderNotebookTabs();
         autosizeAll();
         if (queueMode() === 'list') renderList();
+        renderLinks();
     }
 
     function activeNotebookTab() {
@@ -2041,6 +2160,30 @@
         return out;
     }
 
+    // Copia o item e seus subitens como texto limpo (sem [x] nem marcações internas de tag/prioridade)
+    async function copyTopic(i, btn) {
+        const lines = getLines();
+        const end = subtreeEnd(lines.map(parseLine), i);
+        const text = lines.slice(i, end)
+            .map(queueLineForTextEditor)
+            .map(l => l.replace(/^(\s*)\[[ xX]\]\s*/, '$1'))
+            .join('\n').replace(/\n{3,}/g, '\n\n').trim();
+        try {
+            await navigator.clipboard.writeText(text);
+        } catch {
+            const ta = Object.assign(document.createElement('textarea'), { value: text });
+            ta.style.cssText = 'position:fixed;opacity:0';
+            document.body.append(ta);
+            ta.select();
+            document.execCommand('copy');
+            ta.remove();
+        }
+        btn.innerHTML = '<i class="bi bi-check-lg"></i>';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.innerHTML = '<i class="bi bi-clipboard"></i>'; btn.classList.remove('copied'); }, 1500);
+        toast(end - i > 1 ? `Tópico copiado com os subitens (${end - i} linhas).` : 'Tópico copiado.', 'success');
+    }
+
     const taskNumberOf = text => text.match(TASK_RE)?.[1] || null;
     const dayHasTask = (k, n) => cleanReport(state.reports[k]).tasks.some(t => taskKey(t.desc) === 'task#' + n);
 
@@ -2063,6 +2206,8 @@
         txt.title = 'Clique para editar';
         txt.addEventListener('click', e => {
             if (e.target.closest('a')) return;
+            // arrastou para selecionar texto: não entra em edição (senão a seleção some)
+            if (String(window.getSelection?.() || '').trim()) return;
             startEdit(i, txt);
         });
         return txt;
@@ -2165,7 +2310,8 @@
             const row = el('div', 'list-item' + (it.done ? ' done' : '') + (isHeading(it) ? ' heading' : ''));
             row.style.setProperty('--lvl', it.level);
             row.dataset.idx = i;
-            row.draggable = checkable;
+            // só fica arrastável enquanto a alça ⠿ está pressionada: assim o texto pode ser selecionado
+            row.draggable = false;
             row.addEventListener('dragstart', e => {
                 e.dataTransfer.setData('text/plain', String(i));
                 e.dataTransfer.setData('application/x-mydaily-annotation', JSON.stringify({ text: it.text }));
@@ -2174,10 +2320,11 @@
                 document.querySelectorAll('.day-card').forEach(card => card.classList.add('task-drop-ready'));
             });
             row.addEventListener('dragend', () => {
+                row.draggable = false;
                 row.classList.remove('dragging');
                 document.querySelectorAll('.day-card.task-drop-ready, .day-card.task-drop-target').forEach(card => card.classList.remove('task-drop-ready', 'task-drop-target'));
             });
-            row.addEventListener('dragover', e => { if (row.draggable) { e.preventDefault(); row.classList.add('drop-target'); } });
+            row.addEventListener('dragover', e => { if (checkable && e.dataTransfer?.types.includes('application/x-mydaily-annotation')) { e.preventDefault(); row.classList.add('drop-target'); } });
             row.addEventListener('dragleave', () => row.classList.remove('drop-target'));
             row.addEventListener('drop', e => {
                 e.preventDefault();
@@ -2185,6 +2332,16 @@
                 const source = getLines().map(parseLine)[Number(e.dataTransfer.getData('text/plain'))];
                 if (source?.num && it.num) moveListSibling(Number(e.dataTransfer.getData('text/plain')), i);
             });
+            if (checkable) {
+                const grip = el('span', 'list-grip');
+                grip.title = 'Arraste para reordenar ou soltar num dia';
+                grip.innerHTML = '<i class="bi bi-grip-vertical"></i>';
+                grip.addEventListener('pointerdown', () => { row.draggable = true; });
+                const release = () => { if (!row.classList.contains('dragging')) row.draggable = false; };
+                grip.addEventListener('pointerup', release);
+                grip.addEventListener('pointerleave', release);
+                row.append(grip);
+            }
             if (checkable) {
                 const cb = el('button', 'list-check');
                 cb.type = 'button';
@@ -2245,6 +2402,15 @@
                     row.append(outdent);
                 }
             }
+
+            const copy = el('button', 'list-copy-btn');
+            copy.type = 'button';
+            const kids = childIdx(items, i).length;
+            copy.title = kids ? `Copiar este tópico com ${kids} subitem(ns)` : 'Copiar este tópico';
+            copy.setAttribute('aria-label', copy.title);
+            copy.innerHTML = '<i class="bi bi-clipboard"></i>';
+            copy.addEventListener('click', () => copyTopic(i, copy));
+            row.append(copy);
 
             const n = taskNumberOf(it.text);
             if (n) {
@@ -2321,6 +2487,196 @@
         $('queue-mode-text').className = 'btn btn-sm ' + (list ? 'btn-outline-warning' : 'btn-warning');
         if (list) renderList();
         else { $('queue-field').value = queueTextForEditor(state.profile.queue); autosize($('queue-field')); }
+    }
+
+    // ------------------------------------------------------------ Links do dia a dia
+    // Ficam em settings.links: as regras já aceitam "settings" como mapa, sem republicar nada.
+    const LINK_COLORS = ['#3d5afe', '#0097a7', '#8e24aa', '#ef6c00', '#2e7d32', '#d81b60', '#f9a825', '#5c6bc0'];
+    const LINK_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
+
+    function getLinks() {
+        const list = state.profile.settings.links;
+        return Array.isArray(list) ? list.filter(l => l && l.id && l.url) : [];
+    }
+    function setLinks(links) {
+        state.profile.settings = { ...state.profile.settings, links };
+        markProfileDirty();
+        renderLinks();
+    }
+    // Aceita "site.com.br" (vira https://) e só http, https e ftp — nunca javascript: e afins
+    function normalizeUrl(raw) {
+        let s = String(raw ?? '').trim();
+        if (!s) return null;
+        if (!/^[a-z][a-z0-9+.-]*:/i.test(s)) s = 'https://' + s;
+        try {
+            const u = new URL(s);
+            return ['http:', 'https:', 'ftp:'].includes(u.protocol) && u.hostname ? u.href : null;
+        } catch { return null; }
+    }
+    function linkHost(url) {
+        try { const u = new URL(url); return u.host + (u.pathname !== '/' ? u.pathname : ''); } catch { return url; }
+    }
+    function linkColor(name) {
+        let h = 0;
+        for (const c of String(name)) h = (h * 31 + c.codePointAt(0)) >>> 0;
+        return LINK_COLORS[h % LINK_COLORS.length];
+    }
+    function linkAvatar(l) {
+        const av = el('span', 'link-avatar', l.icon || ([...l.name.trim()][0] || '?').toUpperCase());
+        av.style.background = linkColor(l.name);
+        return av;
+    }
+    function openLink(l) {
+        const w = window.open(l.url, '_blank');
+        if (w) w.opener = null;
+        else toast('O navegador bloqueou a nova aba. Permita pop-ups para este site.', 'warning');
+    }
+
+    let linksSortable = null;
+    function renderLinks() {
+        const grid = $('links-grid');
+        grid.replaceChildren();
+        const q = $('links-search').value.trim().toLocaleLowerCase('pt-BR');
+        const links = getLinks();
+        const shown = links.filter(l => !q || `${l.name} ${l.url}`.toLocaleLowerCase('pt-BR').includes(q));
+        linksSortable?.option('disabled', !!q);   // reordenar só com a lista completa
+        if (!links.length) return grid.append(el('div', 'link-empty', 'Nenhum link ainda. Clique em "Novo link" para criar os atalhos que você usa todo dia.'));
+        if (!shown.length) return grid.append(el('div', 'link-empty', 'Nenhum link encontrado.'));
+        for (const l of shown) {
+            const tile = el('div', 'link-tile');
+            tile.dataset.id = l.id;
+            const a = el('a', 'link-main');
+            a.href = l.url;
+            a.target = '_blank';
+            a.rel = 'noopener noreferrer';
+            a.title = l.url;
+            const info = el('span', 'link-info');
+            info.append(el('span', 'link-name d-block', l.name), el('span', 'link-host d-block', linkHost(l.url)));
+            a.append(linkAvatar(l), info);
+            tile.append(a);
+            if (l.key) tile.append(el('span', 'link-key', 'Alt+' + l.key));
+            const edit = el('button', 'link-edit');
+            edit.type = 'button';
+            edit.title = 'Editar link';
+            edit.setAttribute('aria-label', `Editar ${l.name}`);
+            edit.innerHTML = '<i class="bi bi-pencil"></i>';
+            edit.addEventListener('click', () => openLinkModal(l.id));
+            tile.append(edit);
+            grid.append(tile);
+        }
+    }
+
+    let editingLinkId = null;
+    function openLinkModal(id = null) {
+        const links = getLinks();
+        const l = links.find(x => x.id === id);
+        editingLinkId = l ? l.id : null;
+        $('link-modal-title').textContent = l ? 'EDITAR LINK' : 'NOVO LINK';
+        $('link-name').value = l?.name || '';
+        $('link-url').value = l?.url || '';
+        $('link-icon').value = l?.icon || '';
+        const sel = $('link-key');
+        sel.replaceChildren(new Option('Sem atalho', ''));
+        for (const k of LINK_KEYS) {
+            const owner = links.find(x => x.key === k && x.id !== editingLinkId);
+            const note = !owner ? '' : l?.key ? ` (troca com ${owner.name})` : ` (tira de ${owner.name})`;
+            sel.append(new Option(`Alt+${k}${note}`, k));
+        }
+        // link novo já ganha o primeiro atalho livre
+        sel.value = l ? (l.key || '') : (LINK_KEYS.find(k => !links.some(x => x.key === k)) || '');
+        $('link-delete').classList.toggle('d-none', !l);
+        bootstrap.Modal.getOrCreateInstance($('linkModal')).show();
+    }
+
+    function saveLinkFromForm(e) {
+        e.preventDefault();
+        const name = $('link-name').value.trim().slice(0, 40);
+        const url = normalizeUrl($('link-url').value);
+        if (!name) return toast('Dê um nome para o link.', 'warning');
+        if (!url) return toast('Endereço inválido. Use http, https ou ftp.', 'warning');
+        const key = $('link-key').value;
+        const icon = [...$('link-icon').value.trim()].slice(0, 2).join('');
+        const links = getLinks().map(x => ({ ...x }));
+        const existing = links.find(x => x.id === editingLinkId);
+        // atalho já usado: o outro link fica com o atalho antigo deste (troca) ou sem atalho
+        if (key) links.forEach(x => { if (x.key === key && x.id !== editingLinkId) x.key = existing?.key || ''; });
+        const data = { name, url, key, icon };
+        if (existing) Object.assign(existing, data);
+        else links.push({ id: notebookId(), ...data });
+        setLinks(links);
+        bootstrap.Modal.getOrCreateInstance($('linkModal')).hide();
+        toast(existing ? 'Link atualizado.' : `Link criado${key ? ` — abra com Alt+${key}` : ''}.`, 'success');
+    }
+
+    function deleteLinkFromForm() {
+        const l = getLinks().find(x => x.id === editingLinkId);
+        if (!l || !confirm(`Excluir o link "${l.name}"?`)) return;
+        setLinks(getLinks().filter(x => x.id !== l.id));
+        bootstrap.Modal.getOrCreateInstance($('linkModal')).hide();
+    }
+
+    function openLinkByKey(key) {
+        const l = getLinks().find(x => x.key === key);
+        if (l) { openLink(l); return true; }
+        toast(`Nenhum link no Alt+${key}. Configure na aba Links.`, 'info');
+        return false;
+    }
+
+    // Busca rápida (Ctrl+K): links + ir para as abas
+    const PALETTE_TABS = [
+        { label: 'Ir para Dias', target: '#tab-logs', icon: 'bi-calendar3' },
+        { label: 'Ir para Estatísticas', target: '#tab-charts', icon: 'bi-bar-chart' },
+        { label: 'Ir para Caderno', target: '#tab-note', icon: 'bi-journal-text' },
+        { label: 'Ir para Links', target: '#tab-links', icon: 'bi-link-45deg' },
+    ];
+    let paletteItems = [], paletteIndex = 0;
+
+    function openPalette() {
+        $('palette-input').value = '';
+        paletteIndex = 0;
+        renderPalette();
+        bootstrap.Modal.getOrCreateInstance($('paletteModal')).show();
+    }
+    function renderPalette() {
+        const q = $('palette-input').value.trim().toLocaleLowerCase('pt-BR');
+        const match = s => !q || s.toLocaleLowerCase('pt-BR').includes(q);
+        const links = getLinks().filter(l => match(`${l.name} ${l.url}`)).map(l => ({ type: 'link', link: l }));
+        const tabs = PALETTE_TABS.filter(t => match(t.label)).map(t => ({ type: 'tab', tab: t }));
+        paletteItems = [...links, ...tabs];
+        paletteIndex = Math.min(paletteIndex, Math.max(0, paletteItems.length - 1));
+        const wrap = $('palette-results');
+        wrap.replaceChildren();
+        if (!paletteItems.length) return wrap.append(el('div', 'palette-empty', 'Nada encontrado.'));
+        paletteItems.forEach((item, i) => {
+            const row = el('div', 'palette-item' + (i === paletteIndex ? ' active' : ''));
+            row.setAttribute('role', 'option');
+            if (item.type === 'link') {
+                const info = el('div', 'min-w-0');
+                info.style.minWidth = '0';
+                info.append(el('div', 'link-name', item.link.name), el('div', 'link-host', linkHost(item.link.url)));
+                row.append(linkAvatar(item.link), info);
+                if (item.link.key) row.append(el('span', 'palette-key', 'Alt+' + item.link.key));
+            } else {
+                const icon = el('span', 'link-avatar');
+                icon.style.background = 'var(--accent)';
+                icon.innerHTML = `<i class="bi ${item.tab.icon}"></i>`;
+                row.append(icon, el('div', 'link-name', item.tab.label));
+            }
+            row.addEventListener('mousemove', () => { if (paletteIndex !== i) { paletteIndex = i; renderPalette(); } });
+            row.addEventListener('click', () => runPaletteItem(i));
+            wrap.append(row);
+        });
+        wrap.querySelector('.palette-item.active')?.scrollIntoView({ block: 'nearest' });
+    }
+    function runPaletteItem(i) {
+        const item = paletteItems[i];
+        if (!item) return;
+        bootstrap.Modal.getOrCreateInstance($('paletteModal')).hide();
+        if (item.type === 'link') openLink(item.link);
+        else showTab(item.tab.target);
+    }
+    function showTab(target) {
+        bootstrap.Tab.getOrCreateInstance(document.querySelector(`#mainTabs [data-bs-target="${target}"]`)).show();
     }
 
     // ------------------------------------------------------------ Navegação
@@ -2805,16 +3161,22 @@
     }
     function escapeHtml(value) { return String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]); }
 
+    // Monta o backup a partir da nuvem (dias) + perfil atual. Usado no "Exportar" e antes de substituir tudo.
+    async function buildBackup() {
+        await flush();
+        const snap = await getDocs(reportsCol());
+        const reports = {};
+        snap.forEach(d => { if (isDateKey(d.id)) reports[d.id] = cleanReport(d.data()); });
+        const p = state.profile;
+        const data = { app: 'mydaily', version: 2, exportedAt: new Date().toISOString(), reports, queue: p.queue, notebook: p.notebook, settings: p.settings };
+        return { data, days: snap.size };
+    }
+
     async function exportBackup() {
         try {
-            await flush();
-            const snap = await getDocs(reportsCol());
-            const reports = {};
-            snap.forEach(d => { reports[d.id] = cleanReport(d.data()); });
-            const p = state.profile;
-            const data = { app: 'mydaily', version: 2, exportedAt: new Date().toISOString(), reports, queue: p.queue, notebook: p.notebook, settings: p.settings };
+            const { data, days } = await buildBackup();
             downloadText(`mydaily-backup-${todayKey()}.json`, JSON.stringify(data, null, 2));
-            toast(`Backup exportado (${snap.size} dias).`, 'success');
+            toast(`Backup exportado (${days} dias).`, 'success');
         } catch (e) {
             console.error(e);
             toast('Falha ao exportar: ' + (e.code || e.message), 'danger');
@@ -2836,9 +3198,10 @@
         }
         const source = normalizeNotebook(incoming);
         for (const imported of source.tabs) {
-            const base = `${imported.name} (importado)`;
+            // mantém o nome original; só numera se já existir uma aba com o mesmo nome
+            const base = imported.name;
             let name = base, suffix = 2;
-            while (destination.tabs.some(tab => tab.name.toLocaleLowerCase('pt-BR') === name.toLocaleLowerCase('pt-BR'))) name = `${base} ${suffix++}`;
+            while (destination.tabs.some(tab => tab.name.toLocaleLowerCase('pt-BR') === name.toLocaleLowerCase('pt-BR'))) name = `${base.slice(0, 36)} ${suffix++}`;
             destination.tabs.push({ id: notebookId(), name: name.slice(0, 40), content: imported.content });
         }
         return destination;
@@ -2876,6 +3239,22 @@
             const meta = Number(data.settings.metaHoras);
             if (meta > 0 && meta <= 24) p.settings.metaHoras = meta;
             if (typeof data.settings.pularFimDeSemana === 'boolean') p.settings.pularFimDeSemana = data.settings.pularFimDeSemana;
+            // links do backup entram no fim; os que já existem (mesmo endereço) são ignorados
+            if (Array.isArray(data.settings.links)) {
+                const current = getLinks();
+                const known = new Set(current.map(l => l.url));
+                const usedKeys = new Set(current.map(l => l.key).filter(Boolean));
+                for (const l of data.settings.links) {
+                    const url = normalizeUrl(l?.url);
+                    const name = String(l?.name ?? '').trim().slice(0, 40);
+                    if (!url || !name || known.has(url)) continue;
+                    const key = LINK_KEYS.includes(l.key) && !usedKeys.has(l.key) ? l.key : '';
+                    if (key) usedKeys.add(key);
+                    current.push({ id: notebookId(), name, url, key, icon: [...String(l.icon ?? '')].slice(0, 2).join('') });
+                    known.add(url);
+                }
+                p.settings.links = current;
+            }
         }
         state.profileDirty = true;
         await flush();
@@ -2887,10 +3266,108 @@
         return true;
     }
 
+    // Configurações vindas do arquivo, validadas campo a campo; o que faltar fica como está hoje
+    function settingsFromBackup(current, incoming) {
+        if (!incoming || typeof incoming !== 'object') return current;
+        const s = { ...current };
+        const meta = Number(incoming.metaHoras);
+        if (meta > 0 && meta <= 24) s.metaHoras = meta;
+        for (const k of ['pularFimDeSemana', 'usaBancoHoras', 'reminderEnabled']) if (typeof incoming[k] === 'boolean') s[k] = incoming[k];
+        if (['dark', 'light', 'system'].includes(incoming.theme)) s.theme = incoming.theme;
+        if (/^\d{2}:\d{2}$/.test(incoming.reminderTime ?? '')) s.reminderTime = incoming.reminderTime;
+        if (Array.isArray(incoming.links)) {
+            const usedKeys = new Set();
+            s.links = incoming.links.map(l => {
+                const url = normalizeUrl(l?.url);
+                const name = String(l?.name ?? '').trim().slice(0, 40);
+                if (!url || !name) return null;
+                const key = LINK_KEYS.includes(l.key) && !usedKeys.has(l.key) ? l.key : '';
+                if (key) usedKeys.add(key);
+                return { id: String(l.id || notebookId()), name, url, key, icon: [...String(l.icon ?? '')].slice(0, 2).join('') };
+            }).filter(Boolean);
+        }
+        return s;
+    }
+
+    // Importar arquivo = a conta fica IGUAL ao arquivo: dias fora dele são apagados,
+    // anotações e caderno são trocados. Antes, baixa um backup da conta atual.
+    async function replaceAllFromBackup(data, origem) {
+        if (!data || typeof data !== 'object' || typeof data.reports !== 'object' || data.reports === null) {
+            throw new Error('O arquivo não parece um backup do MYDAILY.');
+        }
+        const entries = Object.entries(data.reports)
+            .filter(([k]) => isDateKey(k))
+            .map(([k, v]) => [k, cleanReport(v)])
+            .filter(([, r]) => !isEmptyReport(r));
+        const incomingKeys = new Set(entries.map(([k]) => k));
+
+        const cloudSnap = await getDocs(reportsCol());
+        const toDelete = cloudSnap.docs.map(d => d.id).filter(k => !incomingKeys.has(k));
+        const hasSettings = data.settings && typeof data.settings === 'object';
+
+        const ok = confirm(
+            `SUBSTITUIR TODOS os dados da conta por ${origem}?\n\n` +
+            `• ${entries.length} dia(s) do arquivo ficam na conta.\n` +
+            `• ${toDelete.length} dia(s) que não estão no arquivo serão APAGADOS.\n` +
+            `• Anotações e caderno serão trocados pelos do arquivo.\n` +
+            `• Configurações e links: ${hasSettings ? 'trocados pelos do arquivo' : 'mantidos (o arquivo não tem)'}.\n\n` +
+            `Antes, um backup da conta atual será baixado automaticamente.`
+        );
+        if (!ok) return false;
+
+        // Rede de segurança: sem o backup da conta atual, não apaga nada
+        try {
+            const { data: current } = await buildBackup();
+            downloadText(`mydaily-antes-de-importar-${todayKey()}-${Date.now()}.json`, JSON.stringify(current, null, 2));
+        } catch (e) {
+            throw new Error('não consegui baixar o backup da conta atual, então nada foi alterado (' + (e.code || e.message) + ').');
+        }
+
+        // Descarta edições locais pendentes: a conta vai virar o arquivo
+        clearTimeout(state.saveTimer); clearTimeout(state.retryTimer);
+        state.dirtyDates.clear(); state.profileDirty = false;
+        state.conflicts.clear(); state.remoteReports.clear(); state.historyEvents.clear();
+
+        setStatus('saving', 'IMPORTANDO…');
+        const ops = [
+            ...toDelete.map(k => b => b.delete(doc(reportsCol(), k))),
+            ...entries.map(([k, r]) => b => b.set(doc(reportsCol(), k), reportDoc(r))),
+        ];
+        for (let i = 0; i < ops.length; i += 400) {
+            const batch = writeBatch(db);
+            ops.slice(i, i + 400).forEach(op => op(batch));
+            await batch.commit();
+        }
+
+        const settings = settingsFromBackup(state.profile.settings, data.settings);
+        state.profile = {
+            queue: String(data.queue ?? ''),
+            notebook: normalizeNotebook(data.notebook ?? ''),
+            settings,
+        };
+        const profileBatch = writeBatch(db);
+        profileBatch.set(userRef(), { queue: state.profile.queue, notebook: state.profile.notebook, settings, updatedAt: serverTimestamp() });
+        await profileBatch.commit();
+
+        state.reports = {}; state.savedReports = {};
+        entries.forEach(([k, r]) => { state.reports[k] = r; state.savedReports[k] = cloneReport(r); });
+        state.allLoaded = true;
+        $('last-sync').textContent = 'ÚLTIMO SYNC: ' + new Date().toLocaleTimeString('pt-BR');
+
+        applyTheme(settings.theme);
+        configureReminder();
+        fillProfileFields();
+        renderDays();
+        if (chartsVisible()) updateCharts();
+        refreshStatus();
+        toast(`Conta substituída pelo arquivo: ${entries.length} dia(s) importado(s), ${toDelete.length} apagado(s).`, 'success');
+        return true;
+    }
+
     async function importFromFile(file) {
         try {
             const data = JSON.parse(await file.text());
-            await importData(data, `"${file.name}"`);
+            await replaceAllFromBackup(data, `"${file.name}"`);
         } catch (e) {
             console.error(e);
             toast('Falha ao importar: ' + (e instanceof SyntaxError ? 'arquivo não é um JSON válido.' : (e.code || e.message)), 'danger');
@@ -3171,6 +3648,38 @@
             goToDate(state.selected);
         });
 
+        // Links
+        $('links-add').addEventListener('click', () => openLinkModal());
+        $('links-search').addEventListener('input', renderLinks);
+        $('link-form').addEventListener('submit', saveLinkFromForm);
+        $('link-delete').addEventListener('click', deleteLinkFromForm);
+        $('linkModal').addEventListener('shown.bs.modal', () => $('link-name').focus());
+        if (window.Sortable) {
+            linksSortable = window.Sortable.create($('links-grid'), {
+                draggable: '.link-tile', filter: '.link-edit', preventOnFilter: false,
+                animation: 160, delay: 200, delayOnTouchOnly: true,
+                onEnd: () => {
+                    const order = [...$('links-grid').querySelectorAll('.link-tile')].map(t => t.dataset.id);
+                    const byId = new Map(getLinks().map(l => [l.id, l]));
+                    const sorted = order.map(id => byId.get(id)).filter(Boolean);
+                    if (sorted.map(l => l.id).join() !== getLinks().map(l => l.id).join()) setLinks(sorted);
+                },
+            });
+        }
+        $('palette-input').addEventListener('input', () => { paletteIndex = 0; renderPalette(); });
+        $('palette-input').addEventListener('keydown', e => {
+            if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (!paletteItems.length) return;
+                paletteIndex = (paletteIndex + (e.key === 'ArrowDown' ? 1 : -1) + paletteItems.length) % paletteItems.length;
+                renderPalette();
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                runPaletteItem(paletteIndex);
+            }
+        });
+        $('paletteModal').addEventListener('shown.bs.modal', () => $('palette-input').focus());
+
         $('btn-export').addEventListener('click', exportBackup);
         $('btn-import').addEventListener('click', () => $('import-file').click());
         $('import-file').addEventListener('change', e => {
@@ -3182,9 +3691,21 @@
 
         document.addEventListener('keydown', e => {
             if (!state.user) return;
+            // e.code: funciona igual em qualquer layout (no Mac, Option+1 gera "¡" em e.key).
+            // Só a fileira de cima: Alt + teclado numérico é usado no Windows para digitar ç, ã…
+            const digit = /^Digit([1-9])$/.exec(e.code)?.[1];
             if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
                 e.preventDefault();
                 $('btn-save').click();
+            } else if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.code === 'KeyK') {
+                e.preventDefault();
+                openPalette();
+            } else if (e.altKey && !e.ctrlKey && !e.metaKey && digit) {
+                e.preventDefault();
+                openLinkByKey(digit);
+            } else if (e.altKey && !e.ctrlKey && !e.metaKey && e.code === 'KeyL') {
+                e.preventDefault();
+                showTab('#tab-links');
             } else if (e.altKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
                 e.preventDefault();
                 goToDate(stepDay(state.selected, e.key === 'ArrowLeft' ? -1 : 1));
