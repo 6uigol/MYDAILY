@@ -593,10 +593,7 @@
                 <div class="glass-card p-3 p-md-4">
                     <div class="links-toolbar">
                         <input id="links-search" class="form-control form-control-sm" type="search" placeholder="Buscar link…" aria-label="Buscar link">
-                        <div class="d-flex gap-2">
-                            <button type="button" class="btn btn-sm btn-outline-info" id="links-open-all"><i class="bi bi-box-arrow-up-right me-1"></i>Abrir todos</button>
-                            <button type="button" class="btn btn-sm btn-cyber-primary" id="links-add"><i class="bi bi-plus-lg me-1"></i>Novo link</button>
-                        </div>
+                        <button type="button" class="btn btn-sm btn-cyber-primary" id="links-add"><i class="bi bi-plus-lg me-1"></i>Novo link</button>
                     </div>
                     <div id="links-grid" class="links-grid"></div>
                     <div class="links-hint">
@@ -2608,22 +2605,6 @@
         bootstrap.Modal.getOrCreateInstance($('linkModal')).hide();
     }
 
-    // Abre todos os links (os filtrados pela busca, se houver) em abas novas.
-    // O navegador costuma permitir só a 1ª aba por clique até você liberar pop-ups para o site.
-    function openAllLinks() {
-        const q = $('links-search').value.trim().toLocaleLowerCase('pt-BR');
-        const links = getLinks().filter(l => !q || `${l.name} ${l.url}`.toLocaleLowerCase('pt-BR').includes(q));
-        if (!links.length) return toast('Nenhum link para abrir.', 'info');
-        if (links.length > 10 && !confirm(`Abrir ${links.length} links em abas novas?`)) return;
-        let blocked = 0;
-        for (const l of links) {
-            const w = window.open(l.url, '_blank');
-            if (w) w.opener = null; else blocked++;
-        }
-        if (blocked) toast(`O navegador bloqueou ${blocked} de ${links.length} abas. Clique no ícone de pop-up bloqueado na barra de endereço, escolha "Sempre permitir" e clique em Abrir todos de novo.`, 'warning');
-        else toast(`${links.length} link(s) abertos.`, 'success');
-    }
-
     function openLinkByKey(key) {
         const l = getLinks().find(x => x.key === key);
         if (l) { openLink(l); return true; }
@@ -3659,7 +3640,6 @@
 
         // Links
         $('links-add').addEventListener('click', () => openLinkModal());
-        $('links-open-all').addEventListener('click', openAllLinks);
         $('links-search').addEventListener('input', renderLinks);
         $('link-form').addEventListener('submit', saveLinkFromForm);
         $('link-delete').addEventListener('click', deleteLinkFromForm);
