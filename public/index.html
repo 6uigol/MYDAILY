@@ -553,8 +553,7 @@
                         <h5 class="fw-bold mb-0" style="color:var(--terminal)">RESUMO E COMPARAÇÃO SEMANAL</h5>
                         <div class="d-flex flex-wrap gap-2">
                             <button class="btn btn-sm btn-outline-info" id="export-csv">CSV</button>
-                            <button class="btn btn-sm btn-outline-info" id="export-xls">Excel</button>
-                            <button class="btn btn-sm btn-outline-info" id="export-pdf">PDF / Imprimir</button>
+                            <button class="btn btn-sm btn-outline-info" id="export-pdf">PDF</button>
                         </div>
                     </div>
                     <div id="period-summary-text" class="small text-secondary">Carregando resumo…</div>
@@ -3112,40 +3111,52 @@
         const range = calendarWeekRange(state.selected);
         await ensureRange(range[0], range.at(-1));
         const week = selectedWeekKeys();
-        const rows = [];
+        // Grade 1: Data | Task | Horas.  Grade 2 (separada): Data | Comentários, um por dia.
+        const taskRows = [], commentRows = [];
         week.forEach(k => {
             const r = cleanReport(state.reports[k]);
-            if (!r.tasks.length && !r.comments.trim()) return;
-            if (!r.tasks.length) rows.push([fmtBR(k), '', '', r.comments]);
-            r.tasks.forEach(t => rows.push([fmtBR(k), t.desc, t.hour, r.comments]));
+            r.tasks.forEach(t => taskRows.push([fmtBR(k), t.desc, t.hour]));
+            if (r.comments.trim()) commentRows.push([fmtBR(k), r.comments.trim()]);
         });
-        return { rows, week };
+        return { taskRows, commentRows, week };
     }
+    const TASK_HEADER = ['Data', 'Task', 'Horas'];
+    const COMMENT_HEADER = ['Data', 'Comentários'];
     const csvCell = value => '"' + String(value ?? '').replace(/"/g, '""') + '"';
+    const csvLines = rows => rows.map(row => row.map(csvCell).join(';'));
     async function exportCsv() {
         try {
-            const { rows, week } = await exportReportRows();
-            const csv = [['Data', 'Task', 'Horas', 'Comentários'], ...rows].map(row => row.map(csvCell).join(';')).join('\r\n');
+            const { taskRows, commentRows, week } = await exportReportRows();
+            const csv = [
+                ...csvLines([TASK_HEADER, ...taskRows]),
+                '',
+                csvCell('COMENTÁRIOS'),
+                ...csvLines([COMMENT_HEADER, ...commentRows]),
+            ].join('\r\n');
             downloadText(`mydaily-semana-${week[0]}-${week.at(-1)}.csv`, '\ufeff' + csv, 'text/csv;charset=utf-8');
             toast('CSV da semana selecionada exportado.', 'success');
         } catch (e) { toast('Falha ao exportar CSV: ' + (e.code || e.message), 'danger'); }
     }
-    async function exportExcel() {
-        try {
-            const { rows, week } = await exportReportRows();
-            const cells = [['Data', 'Task', 'Horas', 'Comentários'], ...rows].map(row => '<tr>' + row.map(v => `<td>${escapeHtml(v)}</td>`).join('') + '</tr>').join('');
-            const html = `<html><head><meta charset="utf-8"></head><body><h2>MYDAILY — Semana ${fmtBR(week[0])} a ${fmtBR(week.at(-1))}</h2><table>${cells}</table></body></html>`;
-            downloadText(`mydaily-semana-${week[0]}-${week.at(-1)}.xls`, html, 'application/vnd.ms-excel;charset=utf-8');
-            toast('Arquivo Excel da semana selecionada exportado.', 'success');
-        } catch (e) { toast('Falha ao exportar Excel: ' + (e.code || e.message), 'danger'); }
+    function htmlTable(header, rows, emptyText) {
+        const head = '<tr>' + header.map(h => `<th>${escapeHtml(h)}</th>`).join('') + '</tr>';
+        const body = rows.length
+            ? rows.map(row => '<tr>' + row.map(v => `<td>${escapeHtml(v)}</td>`).join('') + '</tr>').join('')
+            : `<tr><td colspan="${header.length}" class="empty">${escapeHtml(emptyText)}</td></tr>`;
+        return `<table>${head}${body}</table>`;
     }
     async function exportPdf() {
         const win = window.open('', '_blank');
         if (!win) return toast('Permita pop-ups para gerar o PDF.', 'warning');
         try {
-            const { rows, week } = await exportReportRows();
-            const table = [['Data', 'Task', 'Horas', 'Comentários'], ...rows].map(row => '<tr>' + row.map(v => `<td>${escapeHtml(v)}</td>`).join('') + '</tr>').join('');
-            win.document.write(`<html><head><meta charset="utf-8"><title>MYDAILY — semana</title><style>body{font:14px Arial;padding:24px;color:#222}h1{font-size:20px}table{width:100%;border-collapse:collapse}td,th{border:1px solid #bbb;padding:6px;text-align:left;white-space:pre-wrap}tr:first-child{font-weight:bold;background:#eee}@media print{body{padding:0}}</style></head><body><h1>MYDAILY — Semana ${fmtBR(week[0])} a ${fmtBR(week.at(-1))}</h1><table>${table}</table><script>onload=()=>print()<\/script></body></html>`);
+            const { taskRows, commentRows, week } = await exportReportRows();
+            const css = 'body{font:14px Arial;padding:24px;color:#222}h1{font-size:20px;margin:0 0 16px}h2{font-size:16px;margin:28px 0 8px}' +
+                'table{width:100%;border-collapse:collapse}td,th{border:1px solid #bbb;padding:6px;text-align:left;vertical-align:top;white-space:pre-wrap}' +
+                'th{background:#eee}td:first-child{white-space:nowrap;width:90px}.empty{color:#888;font-style:italic}@media print{body{padding:0}}';
+            win.document.write(`<html><head><meta charset="utf-8"><title>MYDAILY — semana</title><style>${css}</style></head><body>` +
+                `<h1>MYDAILY — Semana ${fmtBR(week[0])} a ${fmtBR(week.at(-1))}</h1>` +
+                `<h2>Tasks</h2>${htmlTable(TASK_HEADER, taskRows, 'Nenhuma task na semana.')}` +
+                `<h2>Comentários</h2>${htmlTable(COMMENT_HEADER, commentRows, 'Nenhum comentário na semana.')}` +
+                `<script>onload=()=>print()<\/script></body></html>`);
             win.document.close();
         } catch (e) { toast('Falha ao gerar PDF: ' + (e.code || e.message), 'danger'); }
     }
@@ -3569,7 +3580,6 @@
         $('copy-source-date').addEventListener('change', refreshCopyTasksPreview);
         $('copy-tasks-confirm').addEventListener('click', copyTasksFromSelectedDate);
         $('export-csv').addEventListener('click', exportCsv);
-        $('export-xls').addEventListener('click', exportExcel);
         $('export-pdf').addEventListener('click', exportPdf);
         $('rep-prev').addEventListener('change', e => { storageSet('mydaily_rep_prev', e.target.checked ? '1' : '0'); $('base-report-text').value = buildReport(); });
         $('rep-global').addEventListener('change', e => { storageSet('mydaily_rep_global', e.target.checked ? '1' : '0'); $('base-report-text').value = buildReport(); });
