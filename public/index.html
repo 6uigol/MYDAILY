@@ -164,6 +164,10 @@
             min-height: 0; height: calc(1.5em + .5rem + 2px);
         }
         .task-row .t-hour { flex: 0 0 78px; width: 78px; text-align: center; }
+        .task-row textarea.t-desc.expanded { white-space: normal; overflow: hidden; word-break: break-word; position: relative; z-index: 2; }
+        .task-more-btn { position: relative; flex: 0 0 30px; width: 30px; height: 30px; padding: 0; border: 1px solid var(--border); border-radius: 8px; color: var(--muted); background: transparent; }
+        .task-more-btn:hover, .task-more-btn:focus { color: var(--terminal); border-color: var(--terminal); }
+        .task-more-btn.has-content { color: var(--terminal); border-color: var(--terminal); background: rgba(0,242,255,.08); }
         .hours-badge { font-family: 'Fira Code', monospace; color: var(--terminal); font-size: .8rem; background: rgba(0,242,255,.08); border-radius: 8px; padding: 3px 9px; white-space: nowrap; }
         .saldo-chip { font-family: 'Fira Code', monospace; font-size: .75rem; font-weight: 600; border-radius: 8px; padding: 2px 8px; white-space: nowrap; }
         .saldo-pos { color: var(--save-green); background: rgba(0,255,65,.1); }
@@ -212,6 +216,19 @@
         .list-copy-btn { flex: 0 0 30px; width: 30px; height: 30px; padding: 0; border: 1px solid var(--border); border-radius: 8px; color: var(--muted); background: transparent; }
         .list-copy-btn:hover, .list-copy-btn:focus { color: var(--terminal); border-color: var(--terminal); }
         .list-copy-btn.copied { color: var(--save-green); border-color: var(--save-green); }
+        .list-attach-btn { position: relative; flex: 0 0 30px; width: 30px; height: 30px; padding: 0; border: 1px solid var(--border); border-radius: 8px; color: var(--muted); background: transparent; }
+        .list-attach-btn:hover, .list-attach-btn:focus { color: var(--terminal); border-color: var(--terminal); }
+        .list-attach-btn.has-files { color: var(--terminal); border-color: var(--terminal); background: rgba(0,242,255,.08); }
+        .attach-count { position: absolute; top: -7px; right: -7px; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 99px; background: var(--terminal); color: #000; font-size: .62rem; font-weight: 700; line-height: 17px; text-align: center; }
+        .attach-drop { border: 2px dashed var(--border); border-radius: 12px; padding: 18px; text-align: center; color: var(--muted); cursor: pointer; transition: border-color .15s, background .15s; }
+        .attach-drop:hover, .attach-drop.over { border-color: var(--terminal); color: var(--terminal); background: rgba(0,242,255,.05); }
+        .attach-file { display: flex; align-items: center; gap: 8px; padding: 7px 4px; border-bottom: 1px solid var(--border); }
+        .attach-file:last-child { border-bottom: 0; }
+        .attach-file a { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--terminal); text-decoration: none; }
+        .attach-file a:hover { text-decoration: underline; }
+        .attach-file .attach-size { flex: 0 0 auto; color: var(--muted); font-size: .78rem; }
+        .attach-progress { height: 4px; border-radius: 99px; background: var(--border); overflow: hidden; }
+        .attach-progress > div { height: 100%; width: 0; background: var(--terminal); transition: width .2s; }
         @media (hover: none) { .list-grip { display: none; } }   /* arrastar com o dedo não funciona nesse tipo de arraste */
         .list-level-btn { flex: 0 0 30px; width: 30px; height: 30px; padding: 0; border: 1px solid rgba(255,145,0,.22); border-radius: 8px; color: var(--queue-color); background: rgba(255,145,0,.06); opacity: .72; }
         .list-level-btn:hover, .list-level-btn:focus { opacity: 1; border-color: var(--queue-color); background: rgba(255,145,0,.14); }
@@ -357,7 +374,7 @@
             /* task: descrição na linha inteira, horas + lixeira embaixo */
             /* task: descrição quebra linha à esquerda; horas e lixeira compactas à direita */
             .task-row {
-                display: grid; grid-template-columns: 24px minmax(0, 1fr) 58px 30px; gap: 6px; align-items: start;
+                display: grid; grid-template-columns: 24px minmax(0, 1fr) 58px 30px 30px; gap: 6px; align-items: start;
                 padding-bottom: 8px; border-bottom: 1px solid var(--border); margin-bottom: 8px;
             }
             .task-row textarea.t-desc { white-space: normal; height: auto; line-height: 1.4; padding: 8px 10px; word-break: break-word; font-family: 'Inter', sans-serif; }
@@ -754,6 +771,51 @@
     </div>
 </div>
 
+<!-- ANEXOS (Google Drive do usuário: MyDaily / <item>) -->
+<div class="modal fade" id="attachModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-fullscreen-sm-down">
+        <div class="modal-content glass-card">
+            <div class="modal-header border-0 pb-0">
+                <div class="min-w-0">
+                    <h5 class="modal-title fw-bold" id="attach-title"><i class="bi bi-paperclip me-1"></i>ANEXOS</h5>
+                    <div class="small text-secondary text-truncate" id="attach-item" style="max-width:420px"></div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <div id="attach-task-fields" class="d-none mb-3">
+                    <label class="form-label small text-secondary" for="task-detail-desc">Task</label>
+                    <textarea id="task-detail-desc" class="form-control mb-3" rows="2" placeholder="Descrição da task"></textarea>
+                    <label class="form-label small text-secondary" for="task-detail-notes">Detalhes</label>
+                    <textarea id="task-detail-notes" class="form-control" rows="6" placeholder="Contexto, passos, o que foi feito, pendências…"></textarea>
+                    <div class="divider mt-3">Anexos</div>
+                </div>
+                <div id="attach-connect" class="text-center py-3 d-none">
+                    <p class="small text-secondary mb-3">Os arquivos ficam no <b>seu</b> Google Drive, na pasta <b>MyDaily</b>, com uma subpasta para cada anotação.</p>
+                    <button type="button" class="btn btn-cyber-primary" id="attach-connect-btn"><i class="bi bi-google me-1"></i>Conectar Google Drive</button>
+                </div>
+                <div id="attach-body" class="d-none">
+                    <div class="attach-drop mb-3" id="attach-drop" role="button" tabindex="0">
+                        <i class="bi bi-cloud-arrow-up fs-3 d-block"></i>
+                        Clique ou arraste arquivos aqui
+                    </div>
+                    <div id="attach-uploads"></div>
+                    <div id="attach-list"></div>
+                    <div id="attach-from-notes" class="d-none mt-3">
+                        <div class="small text-secondary mb-1"><i class="bi bi-link-45deg me-1"></i>Vincular arquivo das anotações</div>
+                        <div id="attach-notes-list"></div>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-3 small">
+                        <a href="#" target="_blank" rel="noopener" id="attach-folder-link" class="text-secondary d-none"><i class="bi bi-folder2-open me-1"></i>Abrir pasta no Drive</a>
+                        <span class="text-secondary ms-auto" id="attach-account"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<input type="file" id="attach-input" multiple hidden>
+
 <!-- BUSCA RÁPIDA (Ctrl+K) -->
 <div class="modal fade" id="paletteModal" tabindex="-1">
     <div class="modal-dialog palette-dialog">
@@ -783,6 +845,9 @@
         appId: "1:664603537896:web:9f425a2d3f16581fedf45d",
         measurementId: "G-4NNV1VQHK8"
     };
+    // Anexos no Google Drive do próprio usuário (pasta MyDaily). Console Firebase > Authentication >
+    // Sign-in method > Google > "ID do cliente da Web" (termina em .apps.googleusercontent.com). Vazio = anexos desligados.
+    const GOOGLE_DRIVE_CLIENT_ID = "";
 
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import {
@@ -964,11 +1029,25 @@
         const tasks = Array.isArray(r?.tasks) ? r.tasks : [];
         return {
             tasks: tasks
-                .map(t => ({ desc: String(t?.desc ?? '').trim(), hour: String(t?.hour ?? '').trim() }))
-                .filter(t => t.desc || t.hour),
+                .map(t => ({ ...taskExtras(t), desc: String(t?.desc ?? '').trim(), hour: String(t?.hour ?? '').trim() }))
+                .filter(t => t.desc || t.hour || t.details || t.files),
             comments: String(r?.comments ?? ''),
             folga: r?.folga === true,
         };
+    }
+    // Campos opcionais da task (só existem quando usados, para não inflar o documento):
+    // id estável, detalhes, pasta no Google Drive e anexos [{ id, name, size }]
+    function taskExtras(t) {
+        const out = {};
+        if (typeof t?.id === 'string' && /^[\w-]{1,40}$/.test(t.id)) out.id = t.id;
+        const details = String(t?.details ?? '');
+        if (details.trim()) out.details = details;
+        if (typeof t?.folder === 'string' && /^[\w-]+$/.test(t.folder)) out.folder = t.folder;
+        const files = (Array.isArray(t?.files) ? t.files : [])
+            .filter(f => typeof f?.id === 'string' && /^[\w-]+$/.test(f.id))
+            .map(f => ({ id: f.id, name: String(f.name ?? ''), size: Number(f.size) || 0 }));
+        if (files.length) out.files = files;
+        return out;
     }
     const isEmptyReport = r => !r.tasks.length && !r.comments.trim() && !r.folga;
     // Documento gravado no Firestore: "folga" só vai quando marcada
@@ -1235,7 +1314,7 @@
                 card.classList.remove('task-drop-target');
                 try {
                     const annotation = JSON.parse(e.dataTransfer.getData('application/x-mydaily-annotation'));
-                    if (annotation.text?.trim()) sendToDay(annotation.text, k);
+                    if (annotation.text?.trim()) sendToDay(annotation.text, k, annotation.files);
                 } catch (error) { console.warn('Não foi possível copiar a anotação para o dia.', error); }
             }, true);
 
@@ -1350,11 +1429,25 @@
         del.type = 'button';
         del.title = 'Remover task';
         del.innerHTML = '<i class="bi bi-trash3-fill"></i>';
+        row._task = taskExtras(t);
+        const nFiles = row._task.files?.length || 0;
+        const more = el('button', 'task-more-btn' + (row._task.details || nFiles ? ' has-content' : ''));
+        more.type = 'button';
+        more.title = [row._task.details ? 'Tem detalhes' : '', nFiles ? `${nFiles} anexo(s)` : '', 'Abrir detalhes e anexos'].filter(Boolean).join(' · ');
+        more.setAttribute('aria-label', more.title);
+        more.innerHTML = `<i class="bi ${nFiles ? 'bi-paperclip' : row._task.details ? 'bi-card-text' : 'bi-three-dots'}"></i>`;
+        if (nFiles) more.append(el('span', 'attach-count', String(nFiles)));
+        more.addEventListener('click', () => { syncTasks(list, k); openTaskDetails(k, [...list.querySelectorAll('.task-row')].indexOf(row)); });
+        // No PC a descrição é de 1 linha: com foco ela abre e quebra linha para dar para ler tudo
+        desc.title = t.desc;
+        desc.addEventListener('focus', () => { desc.classList.add('expanded'); desc.style.height = 'auto'; desc.style.height = desc.scrollHeight + 2 + 'px'; });
+        desc.addEventListener('blur', () => { desc.classList.remove('expanded'); desc.title = desc.value; fitDesc(desc); });
 
         const sync = () => syncTasks(list, k);
         desc.addEventListener('input', () => {
             if (desc.value.includes('\n')) desc.value = desc.value.replace(/\s*\n\s*/g, ' ');   // colar texto com quebra
-            fitDesc(desc);
+            if (desc.classList.contains('expanded')) { desc.style.height = 'auto'; desc.style.height = desc.scrollHeight + 2 + 'px'; }
+            else fitDesc(desc);
             sync();
         });
         hour.addEventListener('input', sync);
@@ -1367,7 +1460,7 @@
             (next ? next : addTaskRow(list, k)).querySelector('.t-desc').focus();
         });
 
-        row.append(drag, desc, hour, del);
+        row.append(drag, desc, hour, more, del);
         list.append(row);
         fitDesc(desc);
         hour.classList.toggle('is-invalid', isHourInvalid(hour.value));
@@ -1387,7 +1480,8 @@
         report(k).tasks = [...list.querySelectorAll('.task-row')].map(r => {
             const hourInput = r.querySelector('.t-hour');
             hourInput.classList.toggle('is-invalid', isHourInvalid(hourInput.value));
-            return { desc: r.querySelector('.t-desc').value, hour: hourInput.value };
+            r._task = { ...taskExtras(r._task), desc: r.querySelector('.t-desc').value, hour: hourInput.value };
+            return r._task;
         });
         updateBadge(list.closest('.day-card'), k);
         markDirty(k);
@@ -1470,7 +1564,7 @@
             let copied = 0;
             source.tasks.forEach(t => {
                 const key = `${t.desc}\u0000${t.hour}`;
-                if (!existing.has(key)) { target.tasks.push({ ...t }); existing.add(key); copied++; }
+                if (!existing.has(key)) { const { id: _id, ...copy } = t; target.tasks.push(copy); existing.add(key); copied++; }
             });
             if (!copied) return refreshCopyTasksPreview();
             state.reports[targetDate] = cleanReport(target);
@@ -1746,22 +1840,33 @@
         const bullet = m[4] || null;
         const level = num ? num.split('.').length - 1 : Math.floor(indent.replace(/\t/g, '  ').length / 2);
         const meta = readLineMeta(m[5]);
-        return { blank: false, indent, done: /x/i.test(m[2] || ''), num, bullet, text: meta.text, level, priority: meta.priority, tags: meta.tags };
+        return { blank: false, indent, done: /x/i.test(m[2] || ''), num, bullet, text: meta.text, level, priority: meta.priority, tags: meta.tags, folder: meta.folder, files: meta.files };
     }
     function formatLine(it) {
-        const meta = [it.priority ? `[[md:p=${it.priority}]]` : '', ...(it.tags || []).map(tag => `[[md:t=${encodeURIComponent(tag)}]]`)].filter(Boolean).join(' ');
+        const meta = [
+            it.priority ? `[[md:p=${it.priority}]]` : '',
+            ...(it.tags || []).map(tag => `[[md:t=${encodeURIComponent(tag)}]]`),
+            it.folder ? `[[md:f=${it.folder}]]` : '',
+            ...(it.files || []).map(f => `[[md:a=${f.id}:${encodeURIComponent(f.name)}:${Number(f.size) || 0}]]`),
+        ].filter(Boolean).join(' ');
         return it.indent + (it.done ? '[x] ' : '') + (it.num ? it.num + ' - ' : it.bullet ? it.bullet + ' ' : '') + it.text + (meta ? ' ' + meta : '');
     }
+    // p = prioridade · t = tag · f = pasta do item no Google Drive · a = anexo (id:nome:bytes)
     function readLineMeta(text) {
-        let priority = '', tags = [];
-        const visible = text.replace(/\s*\[\[md:([pt])=([^\]]*)\]\]/g, (_m, kind, value) => {
+        let priority = '', tags = [], folder = '', files = [];
+        const visible = text.replace(/\s*\[\[md:([ptfa])=([^\]]*)\]\]/g, (_m, kind, value) => {
             if (kind === 'p' && ['high', 'medium', 'low'].includes(value)) priority = value;
             if (kind === 't') { try { const tag = decodeURIComponent(value); if (tag && !tags.includes(tag)) tags.push(tag); } catch {} }
+            if (kind === 'f' && /^[\w-]+$/.test(value)) folder = value;
+            if (kind === 'a') {
+                const [id, name, size] = value.split(':');
+                if (/^[\w-]+$/.test(id || '') && !files.some(f => f.id === id)) { try { files.push({ id, name: decodeURIComponent(name || ''), size: Number(size) || 0 }); } catch {} }
+            }
             return '';
         }).trimEnd();
-        return { text: visible, priority, tags };
+        return { text: visible, priority, tags, folder, files };
     }
-    const queueMetaPattern = /\[\[md:[pt]=[^\]]*\]\]/g;
+    const queueMetaPattern = /\[\[md:[ptfa]=[^\]]*\]\]/g;
     function queueLineForTextEditor(line) { return String(line).replace(queueMetaPattern, '').replace(/[\t ]+$/g, ''); }
     function queueTextForEditor(rawQueue) { return String(rawQueue ?? '').split('\n').map(queueLineForTextEditor).join('\n'); }
     function mergeQueueEditorText(rawQueue, visibleText) {
@@ -1972,6 +2077,7 @@
 
     function compactListSiblings(lines, anchor, level, parentPath, parentNum) {
         const items = lines.map(parseLine);
+        if (!items.length) return;   // removeu tudo: não sobra nada para renumerar
         let start = 0, end = items.length;
         if (parentNum) {
             const p = items.findIndex(it => it.num === parentNum);
@@ -2178,11 +2284,12 @@
     const taskNumberOf = text => text.match(TASK_RE)?.[1] || null;
     const dayHasTask = (k, n) => cleanReport(state.reports[k]).tasks.some(t => taskKey(t.desc) === 'task#' + n);
 
-    function sendToDay(text, date = state.selected) {
+    // Os anexos da anotação vão junto como vínculo (o arquivo continua na pasta da anotação no Drive)
+    function sendToDay(text, date = state.selected, files = []) {
         const k = date;
         const r = report(k);
         r.tasks = cleanReport(r).tasks;
-        r.tasks.push({ desc: text.trim(), hour: '' });
+        r.tasks.push({ ...taskExtras({ files }), desc: text.trim(), hour: '' });
         markDirty(k);
         renderDays();
         renderList();
@@ -2294,7 +2401,7 @@
             const checkable = isCheckable(it);
             if (checkable) { total++; if (it.done) done++; }
             if (hide && it.done) return;
-            if (search && !`${it.num || ''} ${it.text} ${(it.tags || []).join(' ')}`.toLocaleLowerCase('pt-BR').includes(search)) return;
+            if (search && !`${it.num || ''} ${it.text} ${(it.tags || []).join(' ')} ${(it.files || []).map(f => f.name).join(' ')}`.toLocaleLowerCase('pt-BR').includes(search)) return;
             if (filter === 'open' && checkable && it.done) return;
             if (filter === 'done' && checkable && !it.done) return;
 
@@ -2305,7 +2412,7 @@
             row.draggable = false;
             row.addEventListener('dragstart', e => {
                 e.dataTransfer.setData('text/plain', String(i));
-                e.dataTransfer.setData('application/x-mydaily-annotation', JSON.stringify({ text: it.text }));
+                e.dataTransfer.setData('application/x-mydaily-annotation', JSON.stringify({ text: it.text, files: it.files || [] }));
                 e.dataTransfer.effectAllowed = 'copyMove';
                 row.classList.add('dragging');
                 document.querySelectorAll('.day-card').forEach(card => card.classList.add('task-drop-ready'));
@@ -2374,6 +2481,15 @@
                 tags.type = 'button'; tags.title = 'Editar tags'; tags.textContent = 'Tags';
                 tags.addEventListener('click', () => { const value = prompt('Tags separadas por vírgula:', (it.tags || []).join(', ')); if (value !== null) updateListMetadata(i, item => { item.tags = [...new Set(value.split(',').map(s => s.trim().replace(/^#/, '')).filter(Boolean))]; }); });
                 row.append(priority, tags);
+                const files = it.files || [];
+                const attach = el('button', 'list-attach-btn' + (files.length ? ' has-files' : ''));
+                attach.type = 'button';
+                attach.title = files.length ? `${files.length} anexo(s) · ${fmtBytes(files.reduce((s, f) => s + f.size, 0))} no Google Drive` : 'Anexar arquivos (Google Drive)';
+                attach.setAttribute('aria-label', attach.title);
+                attach.innerHTML = '<i class="bi bi-paperclip"></i>';
+                if (files.length) attach.append(el('span', 'attach-count', String(files.length)));
+                attach.addEventListener('click', () => openAttachments(i));
+                row.append(attach);
             }
 
             if (checkable && it.num) {
@@ -2414,7 +2530,7 @@
                 } else {
                     b.textContent = '→ dia';
                     b.title = `Adicionar às tasks de ${fmtBR(state.selected)}`;
-                    b.addEventListener('click', () => sendToDay(it.text));
+                    b.addEventListener('click', () => sendToDay(it.text, state.selected, it.files));
                 }
                 row.append(b);
             }
@@ -3436,6 +3552,474 @@
         };
         $('legacy-dismiss').onclick = () => { storageSet(doneKey, '1'); $('legacy-banner').classList.add('d-none'); };
     }
+
+    // ------------------------------------------------------------ Anexos (Google Drive do próprio usuário)
+    // Os arquivos ficam no Drive de quem conectou, organizados assim:
+    //   MyDaily / Anotações / <texto da anotação> / arquivos
+    //   MyDaily / Tasks / <descrição da task> / arquivos
+    // A anotação guarda só a referência ([[md:f=idDaPasta]] e [[md:a=id:nome:bytes]]); a task guarda folder/files.
+    // Escopo drive.file: o app só enxerga o que ele mesmo criou, nunca o resto do Drive.
+    // O Drive é a verdade: arquivo apagado ou na lixeira some da anotação/task na próxima conferência.
+    const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+    const DRIVE_API = 'https://www.googleapis.com/drive/v3/';
+    const DRIVE_FOLDER_MIME = 'application/vnd.google-apps.folder';
+    const DRIVE_ROOT_NAME = 'MyDaily';
+    const DRIVE_SECTION_NAME = { note: 'Anotações', task: 'Tasks' };
+    const DRIVE_BLOB_DOWNLOAD_MAX = 500 * 1024 * 1024; // acima disso baixa direto pelo Drive (não cabe bem na memória da aba)
+    const drive = { uid: '', token: '', expiresAt: 0, email: '', folders: {} };
+    let gisLoading = null;
+    // Alvo do modal: { kind: 'note', index, text, folder } (linha das anotações) ou { kind: 'task', id } (task de um dia)
+    let attachTarget = { kind: 'note', index: -1, text: '', folder: '' };
+    let attachState = {};
+    const resetAttachState = () => { attachState = { listing: null, extra: [], loading: false, error: '', folderMissing: false, unverified: false }; };
+    resetAttachState();
+
+    function fmtBytes(n) {
+        n = Number(n) || 0;
+        if (n < 1024) return n + ' B';
+        const units = ['KB', 'MB', 'GB', 'TB'];
+        let u = -1;
+        do { n /= 1024; u++; } while (n >= 1024 && u < units.length - 1);
+        return n.toLocaleString('pt-BR', { maximumFractionDigits: n < 10 ? 1 : 0 }) + ' ' + units[u];
+    }
+    const driveGrantKey = () => 'mydaily_drive_ok_' + (state.user?.uid || '');
+    const driveConnected = () => !!drive.token && drive.uid === state.user?.uid && Date.now() < drive.expiresAt - 60000;
+
+    function loadGis() {
+        if (window.google?.accounts?.oauth2) return Promise.resolve();
+        return gisLoading ||= new Promise((resolve, reject) => {
+            const s = document.createElement('script');
+            s.src = 'https://accounts.google.com/gsi/client';
+            s.async = true;
+            s.onload = resolve;
+            s.onerror = () => { gisLoading = null; reject(new Error('Não foi possível carregar o login do Google.')); };
+            document.head.append(s);
+        });
+    }
+    // Precisa ser chamado direto do clique: o Google abre um popup
+    function requestDriveToken(prompt) {
+        return new Promise((resolve, reject) => {
+            const client = google.accounts.oauth2.initTokenClient({
+                client_id: GOOGLE_DRIVE_CLIENT_ID,
+                scope: DRIVE_SCOPE,
+                login_hint: state.user?.email || undefined,
+                callback: r => {
+                    if (r.error) return reject(new Error(r.error_description || r.error));
+                    if (!google.accounts.oauth2.hasGrantedAllScopes(r, DRIVE_SCOPE)) return reject(new Error('Permissão do Google Drive não concedida.'));
+                    Object.assign(drive, { uid: state.user?.uid || '', token: r.access_token, expiresAt: Date.now() + Number(r.expires_in || 3600) * 1000, email: '', folders: {} });
+                    storageSet(driveGrantKey(), '1');
+                    resolve();
+                },
+                error_callback: e => reject(new Error(e?.type === 'popup_closed' ? 'A janela do Google foi fechada.' : 'Não foi possível abrir o login do Google (popup bloqueado?).')),
+            });
+            client.requestAccessToken({ prompt });
+        });
+    }
+    function connectDrive(prompt) {
+        if (!window.google?.accounts?.oauth2) {
+            toast('Carregando o login do Google… tente de novo em instantes.', 'info');
+            loadGis().catch(e => toast(e.message, 'warning'));
+            return;
+        }
+        attachState.loading = true;
+        renderAttachModal();
+        requestDriveToken(prompt)
+            .then(async () => {
+                try { drive.email = (await (await driveFetch('about?fields=user(emailAddress)')).json()).user?.emailAddress || ''; } catch { /* só informativo */ }
+                return validateAttachments();
+            })
+            .catch(e => { attachState.loading = false; renderAttachModal(); if (prompt !== '') toast(e.message, 'warning'); });
+    }
+
+    async function driveFetch(url, { allow404 = false, ...opts } = {}) {
+        if (!driveConnected()) { renderAttachModal(); throw new Error('Conecte o Google Drive.'); }
+        const res = await fetch(url.startsWith('http') ? url : DRIVE_API + url, { ...opts, headers: { Authorization: 'Bearer ' + drive.token, ...(opts.headers || {}) } });
+        if (res.status === 401) { drive.token = ''; renderAttachModal(); throw new Error('A conexão com o Google expirou. Conecte de novo.'); }
+        if (res.status === 404 && allow404) return null;
+        if (!res.ok) {
+            let msg = 'erro ' + res.status;
+            try { msg = (await res.json()).error.message || msg; } catch { /* sem corpo */ }
+            throw new Error('Google Drive: ' + msg);
+        }
+        return res;
+    }
+    // null = não existe (ou está na lixeira) neste Drive
+    async function fetchDriveFile(id) {
+        const res = await driveFetch(`files/${id}?fields=id,name,size,trashed,parents,webViewLink`, { allow404: true });
+        const f = res && await res.json();
+        return f && !f.trashed ? f : null;
+    }
+    const driveQuote = s => "'" + String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'") + "'";
+    async function createDriveFolder(name, parentId) {
+        const res = await driveFetch('files?fields=id', {
+            method: 'POST', headers: { 'Content-Type': 'application/json; charset=UTF-8' },
+            body: JSON.stringify({ name, mimeType: DRIVE_FOLDER_MIME, parents: [parentId] }),
+        });
+        return (await res.json()).id;
+    }
+    async function findOrCreateDriveFolder(name, parentId) {
+        const q = `name=${driveQuote(name)} and mimeType='${DRIVE_FOLDER_MIME}' and trashed=false and '${parentId}' in parents`;
+        const found = await (await driveFetch('files?pageSize=1&fields=files(id)&q=' + encodeURIComponent(q))).json();
+        return found.files?.[0]?.id || createDriveFolder(name, parentId);
+    }
+    function itemFolderName(text) {
+        return String(text).replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 100) || 'Sem título';
+    }
+
+    function findTask(id) {
+        for (const [k, r] of Object.entries(state.reports)) {
+            const index = (r?.tasks || []).findIndex(t => t.id === id);
+            if (index >= 0) return { k, index, task: r.tasks[index] };
+        }
+        return null;
+    }
+    // A linha pode mudar de posição enquanto o modal está aberto (reordenar, apagar acima...):
+    // procura pela pasta do Drive e, sem pasta ainda, pelo texto.
+    function attachLine() {
+        const lines = getLines();
+        const matches = j => {
+            const it = parseLine(lines[j] ?? '');
+            return !it.blank && (attachTarget.folder ? it.folder === attachTarget.folder : it.text === attachTarget.text);
+        };
+        const idx = matches(attachTarget.index) ? attachTarget.index : lines.findIndex((_, j) => matches(j));
+        return idx < 0 ? null : { lines, idx, it: parseLine(lines[idx]) };
+    }
+    // { text, folder, files } do alvo atual (anotação ou task)
+    function attachItem() {
+        if (attachTarget.kind === 'task') {
+            const found = findTask(attachTarget.id);
+            return found && { text: found.task.desc, folder: found.task.folder || '', files: found.task.files || [] };
+        }
+        return attachLine()?.it || null;
+    }
+    // updater recebe um objeto com folder/files para alterar
+    function updateAttachItem(updater) {
+        if (attachTarget.kind === 'task') {
+            const found = findTask(attachTarget.id);
+            if (!found) { toast('A task não foi encontrada (foi apagada?).', 'warning'); return null; }
+            const t = found.task;
+            updater(t);
+            if (!t.folder) delete t.folder;
+            if (!t.files?.length) delete t.files;
+            markDirty(found.k);
+            renderDays();
+            return t;
+        }
+        const found = attachLine();
+        if (!found) { toast('A anotação não foi encontrada (foi apagada?).', 'warning'); return null; }
+        updater(found.it);
+        found.lines[found.idx] = formatLine(found.it);
+        attachTarget = { kind: 'note', index: found.idx, text: found.it.text, folder: found.it.folder };
+        saveLines(found.lines);
+        if (queueMode() === 'list') renderList();
+        return found.it;
+    }
+
+    function openAttachments(i) {
+        const it = parseLine(getLines()[i] ?? '');
+        if (it.blank) return;
+        if (!GOOGLE_DRIVE_CLIENT_ID) return toast('Anexos desligados: falta o GOOGLE_DRIVE_CLIENT_ID no index.html (veja o LEIA-ME).', 'warning');
+        attachTarget = { kind: 'note', index: i, text: it.text, folder: it.folder };
+        showAttachModal();
+    }
+    function openTaskDetails(k, index) {
+        const task = report(k).tasks[index];
+        if (!task) return;
+        if (!task.id) { task.id = 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); markDirty(k); }
+        attachTarget = { kind: 'task', id: task.id };
+        $('task-detail-desc').value = task.desc;
+        $('task-detail-notes').value = task.details || '';
+        showAttachModal();
+    }
+    function showAttachModal() {
+        resetAttachState();
+        $('attach-uploads').replaceChildren();
+        renderAttachModal();
+        bootstrap.Modal.getOrCreateInstance($('attachModal')).show();
+        if (!GOOGLE_DRIVE_CLIENT_ID) return;
+        if (driveConnected()) validateAttachments();
+        else if (window.google?.accounts?.oauth2 && storageGet(driveGrantKey())) connectDrive('');
+        else loadGis().catch(e => toast(e.message, 'warning'));
+    }
+
+    // Confere no Drive cada arquivo referenciado e a pasta do item.
+    // Se NADA for encontrado, pode ser outra conta Google conectada: aí não apaga sozinho, pergunta.
+    async function validateAttachments() {
+        const it = attachItem();
+        attachState.loading = true; attachState.error = '';
+        renderAttachModal();
+        try {
+            const listing = new Map();
+            await Promise.all((it?.files || []).map(async f => { const live = await fetchDriveFile(f.id); if (live) listing.set(f.id, live); }));
+            let folderOk = false, extra = [];
+            if (it?.folder) {
+                folderOk = !!await fetchDriveFile(it.folder);
+                if (folderOk) {
+                    let pageToken = '';
+                    do {
+                        const q = `'${it.folder}' in parents and trashed=false and mimeType!='${DRIVE_FOLDER_MIME}'`;
+                        const page = await (await driveFetch('files?pageSize=1000&fields=nextPageToken,files(id,name,size,parents,webViewLink)&q=' + encodeURIComponent(q) + (pageToken ? '&pageToken=' + pageToken : ''))).json();
+                        (page.files || []).forEach(f => { if (!it.files.some(x => x.id === f.id)) extra.push(f); });
+                        pageToken = page.nextPageToken || '';
+                    } while (pageToken);
+                }
+            }
+            attachState.listing = listing;
+            attachState.extra = extra;
+            attachState.folderMissing = !!it?.folder && !folderOk;
+            const referenced = (it?.files?.length || 0) + (it?.folder ? 1 : 0);
+            attachState.unverified = referenced > 0 && !listing.size && !folderOk;
+            const stale = f => !listing.has(f.id) || listing.get(f.id).name !== f.name || Number(listing.get(f.id).size || 0) !== f.size;
+            if (!attachState.unverified && (it?.files?.some(stale) || attachState.folderMissing)) {
+                updateAttachItem(x => {
+                    if (attachState.folderMissing) x.folder = '';
+                    x.files = (x.files || []).filter(f => listing.has(f.id)).map(f => ({ ...f, name: listing.get(f.id).name, size: Number(listing.get(f.id).size || 0) }));
+                });
+                attachState.folderMissing = false;
+            }
+        } catch (e) {
+            attachState.error = e.message;
+        }
+        attachState.loading = false;
+        renderAttachModal();
+    }
+    function clearAttachReferences() {
+        updateAttachItem(x => { x.folder = ''; x.files = []; });
+        attachState.unverified = false;
+        attachState.listing = new Map();
+        renderAttachModal();
+    }
+
+    async function ensureItemFolder() {
+        const it = attachItem();
+        if (!it) throw new Error('O item não foi encontrado (foi apagado?).');
+        if (it.folder && !attachState.folderMissing && !attachState.unverified) return it.folder;
+        try {
+            drive.folders.root ||= await findOrCreateDriveFolder(DRIVE_ROOT_NAME, 'root');
+            const section = DRIVE_SECTION_NAME[attachTarget.kind];
+            drive.folders[section] ||= await findOrCreateDriveFolder(section, drive.folders.root);
+            const id = await createDriveFolder(itemFolderName(it.text), drive.folders[section]);
+            attachState.folderMissing = false;
+            attachState.unverified = false;
+            updateAttachItem(x => { x.folder = id; });
+            return id;
+        } catch (e) {
+            drive.folders = {};   // pasta MyDaily pode ter ido para a lixeira: procura de novo na próxima
+            throw e;
+        }
+    }
+
+    async function uploadToDrive(file, folderId, onProgress) {
+        const init = await driveFetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id,name,size,parents,webViewLink', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json; charset=UTF-8', 'X-Upload-Content-Type': file.type || 'application/octet-stream', 'X-Upload-Content-Length': String(file.size) },
+            body: JSON.stringify({ name: file.name, parents: [folderId] }),
+        });
+        const location = init.headers.get('Location');
+        if (!location) throw new Error('O Drive não devolveu o endereço de envio.');
+        return new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open('PUT', location);
+            xhr.upload.onprogress = e => { if (e.lengthComputable) onProgress(e.loaded / e.total); };
+            xhr.onload = () => {
+                if (xhr.status >= 200 && xhr.status < 300) { try { return resolve(JSON.parse(xhr.responseText)); } catch { /* cai no erro */ } }
+                reject(new Error('falha no envio (' + xhr.status + ')'));
+            };
+            xhr.onerror = () => reject(new Error('falha de rede no envio'));
+            xhr.send(file);
+        });
+    }
+    async function uploadAttachments(fileList) {
+        const files = [...fileList];
+        if (!files.length) return;
+        if (!driveConnected()) { renderAttachModal(); return toast('Conecte o Google Drive primeiro.', 'warning'); }
+        let folderId;
+        try { folderId = await ensureItemFolder(); } catch (e) { return toast(e.message, 'warning'); }
+        let sent = 0;
+        for (const file of files) {
+            const row = el('div', 'mb-2');
+            const label = el('div', 'd-flex justify-content-between small text-secondary mb-1');
+            label.append(el('span', 'text-truncate me-2', file.name), el('span', null, fmtBytes(file.size)));
+            const bar = el('div'), track = el('div', 'attach-progress');
+            track.append(bar);
+            row.append(label, track);
+            $('attach-uploads').append(row);
+            try {
+                const up = await uploadToDrive(file, folderId, p => { bar.style.width = (p * 100).toFixed(1) + '%'; });
+                const ref = { id: up.id, name: up.name || file.name, size: Number(up.size ?? file.size) || 0 };
+                attachState.listing ??= new Map();
+                attachState.listing.set(up.id, up);
+                updateAttachItem(x => { x.files = [...(x.files || []), ref]; });
+                sent++;
+            } catch (e) {
+                toast(`${file.name}: ${e.message}`, 'warning');
+            }
+            row.remove();
+            renderAttachModal();
+        }
+        if (sent) toast(`${sent} arquivo(s) anexado(s).`, 'success');
+    }
+
+    async function downloadAttachment(f, btn) {
+        if (f.size > DRIVE_BLOB_DOWNLOAD_MAX) { window.open(`https://drive.google.com/uc?export=download&id=${f.id}`, '_blank', 'noopener'); return; }
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+        try {
+            const blob = await (await driveFetch(`files/${f.id}?alt=media`)).blob();
+            const a = el('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = f.name;
+            document.body.append(a);
+            a.click();
+            a.remove();
+            setTimeout(() => URL.revokeObjectURL(a.href), 30000);
+        } catch (e) {
+            toast(e.message, 'warning');
+        }
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-download"></i>';
+    }
+    // Arquivo da própria pasta vai para a lixeira do Drive; arquivo vinculado de uma anotação só é desvinculado
+    async function removeAttachment(f) {
+        const it = attachItem();
+        const own = !!it?.folder && !!attachState.listing?.get(f.id)?.parents?.includes(it.folder);
+        const unlink = () => updateAttachItem(x => { x.files = (x.files || []).filter(file => file.id !== f.id); });
+        if (!own) {
+            if (!confirm(`Desvincular “${f.name}” daqui?\nO arquivo continua no Drive e onde mais estiver vinculado.`)) return;
+            unlink();
+            return renderAttachModal();
+        }
+        if (!confirm(`Remover “${f.name}”?\nO arquivo vai para a lixeira do seu Google Drive.`)) return;
+        try {
+            await driveFetch(`files/${f.id}`, { method: 'PATCH', allow404: true, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ trashed: true }) });
+        } catch (e) {
+            if (!confirm(`${e.message}\n\nRemover só a referência mesmo assim?`)) return;
+        }
+        attachState.listing?.delete(f.id);
+        unlink();
+        renderAttachModal();
+    }
+    function linkAttachment(f) {
+        attachState.extra = attachState.extra.filter(x => x.id !== f.id);
+        if (attachState.listing && f.parents) attachState.listing.set(f.id, f);
+        updateAttachItem(x => { if (!(x.files || []).some(file => file.id === f.id)) x.files = [...(x.files || []), { id: f.id, name: f.name, size: Number(f.size || 0) }]; });
+        renderAttachModal();
+        // vindo de uma anotação: confere no Drive para saber de onde é (e se ainda existe)
+        if (driveConnected() && !attachState.listing?.get(f.id)?.parents) validateAttachments();
+    }
+
+    function attachButton(icon, title, onClick, cls = 'btn-outline-secondary') {
+        const b = el('button', 'btn btn-sm ' + cls);
+        b.type = 'button'; b.title = title; b.setAttribute('aria-label', title);
+        b.innerHTML = `<i class="bi ${icon}"></i>`;
+        b.addEventListener('click', () => onClick(b));
+        return b;
+    }
+    function attachFileRow(f, icon, iconTitle, sizeText) {
+        const row = el('div', 'attach-file');
+        const status = el('i', 'bi ' + icon);
+        status.title = iconTitle;
+        const link = el('a', null, f.name);
+        link.href = f.webViewLink || `https://drive.google.com/file/d/${f.id}/view`;
+        link.target = '_blank'; link.rel = 'noopener';
+        link.title = f.name;
+        row.append(status, link, el('span', 'attach-size', sizeText));
+        return row;
+    }
+    function renderAttachModal() {
+        const it = attachItem();
+        const isTask = attachTarget.kind === 'task';
+        const enabled = !!GOOGLE_DRIVE_CLIENT_ID;
+        const connected = driveConnected();
+        $('attach-title').innerHTML = isTask ? '<i class="bi bi-card-text me-1"></i>TASK' : '<i class="bi bi-paperclip me-1"></i>ANEXOS';
+        $('attach-item').textContent = it && !isTask ? it.text : '';
+        $('attach-task-fields').classList.toggle('d-none', !isTask);
+        $('attach-connect').classList.toggle('d-none', !enabled || connected || attachState.loading);
+        $('attach-body').classList.toggle('d-none', !enabled || (!connected && !attachState.loading));
+
+        const list = $('attach-list');
+        list.replaceChildren();
+        const listing = attachState.listing;
+        // conferido: só mostra o que existe no Drive; ainda conferindo: mostra o que está salvo
+        const files = (it?.files || []).filter(f => !listing || listing.has(f.id));
+        if (attachState.unverified) {
+            const warn = el('div', 'alert alert-warning small py-2 d-flex align-items-center gap-2');
+            warn.append(el('span', 'flex-fill', `Nenhum dos ${it?.files?.length || 0} arquivo(s) foi encontrado ${drive.email ? 'no Drive de ' + drive.email : 'neste Google Drive'}. Foram apagados ou é outra conta Google?`));
+            warn.append(attachButton('bi-x-lg', 'Limpar referências', clearAttachReferences, 'btn-outline-warning'));
+            list.append(warn);
+        } else if (!files.length && !attachState.extra.length) {
+            list.append(el('div', 'small text-secondary text-center py-2', 'Nenhum arquivo ainda.'));
+        }
+        files.forEach(f => {
+            const live = listing?.get(f.id);
+            const linked = !!live && !!it.folder && !live.parents?.includes(it.folder);
+            const row = attachFileRow({ ...f, webViewLink: live?.webViewLink },
+                !listing ? 'bi-file-earmark' : linked ? 'bi-link-45deg text-info' : 'bi-check-circle text-success',
+                !listing ? '' : linked ? 'Vinculado de outra pasta (anotação)' : 'Conferido no Drive',
+                fmtBytes(f.size));
+            row.append(attachButton('bi-download', 'Baixar', b => downloadAttachment(f, b)));
+            row.append(attachButton('bi-trash3', 'Remover', () => removeAttachment(f), 'btn-outline-danger'));
+            list.append(row);
+        });
+        attachState.extra.forEach(f => {
+            const row = attachFileRow(f, 'bi-question-circle text-info', 'Está na pasta no Drive, mas não está vinculado', 'fora da lista');
+            row.append(attachButton('bi-link-45deg', 'Vincular', () => linkAttachment(f), 'btn-outline-info'));
+            list.append(row);
+        });
+
+        // task: arquivos que já estão nas anotações (os da mesma task primeiro)
+        const fromNotes = $('attach-notes-list');
+        fromNotes.replaceChildren();
+        let noteFiles = [];
+        if (isTask && it) {
+            const linkedIds = new Set((it.files || []).map(f => f.id));
+            const taskNo = taskNumberOf(it.text);
+            getLines().map(parseLine).forEach(note => {
+                if (note.blank) return;
+                (note.files || []).forEach(f => { if (!linkedIds.has(f.id)) noteFiles.push({ f, note, same: !!taskNo && taskNumberOf(note.text) === taskNo }); });
+            });
+            noteFiles.sort((a, b) => b.same - a.same);
+            noteFiles.forEach(({ f, note, same }) => {
+                const row = attachFileRow(f, same ? 'bi-star-fill text-warning' : 'bi-journal-text', same ? 'Anotação da mesma task' : 'Anexo de anotação', fmtBytes(f.size));
+                row.querySelector('a').title = `${f.name}\nAnotação: ${note.text}`;
+                row.append(attachButton('bi-link-45deg', 'Vincular nesta task', () => linkAttachment(f), 'btn-outline-info'));
+                fromNotes.append(row);
+            });
+        }
+        $('attach-from-notes').classList.toggle('d-none', !noteFiles.length);
+
+        const folderLink = $('attach-folder-link');
+        folderLink.classList.toggle('d-none', !it?.folder || attachState.folderMissing || attachState.unverified);
+        if (it?.folder) folderLink.href = `https://drive.google.com/drive/folders/${it.folder}`;
+        const total = files.reduce((s, f) => s + f.size, 0);
+        $('attach-account').textContent = attachState.loading ? 'Conferindo no Google Drive…'
+            : attachState.error ? attachState.error
+            : listing ? `${files.length} arquivo(s) · ${fmtBytes(total)}${drive.email ? ' · ' + drive.email : ''}` : '';
+    }
+
+    $('attach-connect-btn').addEventListener('click', () => connectDrive(storageGet(driveGrantKey()) ? '' : 'consent'));
+    $('attach-drop').addEventListener('click', () => $('attach-input').click());
+    $('attach-drop').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('attach-input').click(); } });
+    $('attach-drop').addEventListener('dragover', e => { if (e.dataTransfer?.types.includes('Files')) { e.preventDefault(); $('attach-drop').classList.add('over'); } });
+    $('attach-drop').addEventListener('dragleave', () => $('attach-drop').classList.remove('over'));
+    $('attach-drop').addEventListener('drop', e => { e.preventDefault(); $('attach-drop').classList.remove('over'); uploadAttachments(e.dataTransfer.files); });
+    $('attach-input').addEventListener('change', e => { uploadAttachments(e.target.files); e.target.value = ''; });
+    // Detalhes da task: grava direto no dia; os cards são redesenhados quando o modal fecha
+    $('task-detail-desc').addEventListener('keydown', e => { if (e.key === 'Enter') e.preventDefault(); });
+    $('task-detail-desc').addEventListener('input', e => {
+        const found = attachTarget.kind === 'task' && findTask(attachTarget.id);
+        if (!found) return;
+        if (e.target.value.includes('\n')) e.target.value = e.target.value.replace(/\s*\n\s*/g, ' ');
+        found.task.desc = e.target.value;
+        markDirty(found.k);
+    });
+    $('task-detail-notes').addEventListener('input', e => {
+        const found = attachTarget.kind === 'task' && findTask(attachTarget.id);
+        if (!found) return;
+        if (e.target.value.trim()) found.task.details = e.target.value; else delete found.task.details;
+        markDirty(found.k);
+    });
+    $('attachModal').addEventListener('hidden.bs.modal', () => { if (attachTarget.kind === 'task') renderDays(); });
 
     // ------------------------------------------------------------ Toast
     function toast(msg, type = 'info') {

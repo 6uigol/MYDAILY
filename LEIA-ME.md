@@ -21,6 +21,29 @@ Nova pasta/
    > A `apiKey` do Firebase Web não é secreta: quem protege os dados são as regras do Firestore.
 6. Troque `SEU-PROJETO` em `.firebaserc` pelo **ID do projeto** (aparece nas configurações).
 
+## 1.1 Anexos no Google Drive (opcional, custo zero)
+
+Os anexos vão para o **Google Drive de cada usuário** (usa a cota do próprio usuário; o Firebase não guarda arquivo nenhum, então nada é cobrado):
+
+```
+MyDaily/
+├── Anotações/<texto da anotação>/arquivos
+└── Tasks/<descrição da task>/arquivos
+```
+
+1. Abra https://console.cloud.google.com/apis/library/drive.googleapis.com?project=mydaily-dcccb e clique em **Ativar** (Google Drive API).
+2. Em **APIs e serviços → Credenciais**, abra o cliente OAuth **Web client (auto created by Google Service)** e copie o **ID do cliente**.
+   - Em **Origens JavaScript autorizadas**, confira se estão `https://mydaily-dcccb.web.app`, `https://mydaily-dcccb.firebaseapp.com` e `http://localhost:3000`.
+3. Em **APIs e serviços → Tela de permissão OAuth**, deixe o app **Em produção**. O escopo `drive.file` não precisa de verificação do Google; em modo "Teste" só os usuários de teste conseguem conectar.
+4. Em `public/index.html`, cole o ID em `GOOGLE_DRIVE_CLIENT_ID`.
+
+Uso:
+- **Anotações:** o clipe de cada item abre a tela de anexos, onde dá para enviar (clique ou arraste), baixar, remover e abrir a pasta no Drive. O número no clipe é a quantidade de anexos.
+- **Tasks do dia:** o botão `…` abre a task com descrição completa, **Detalhes** e anexos. Ali também dá para **vincular arquivos das anotações**; os da mesma task aparecem primeiro, marcados com ★. Mandar uma anotação para o dia (`→ dia` ou arrastar) já leva os anexos dela vinculados.
+- **Conferência automática:** toda vez que a tela abre, o app confere no Drive. Arquivo apagado ou na lixeira some da lista. Se nada for encontrado (por exemplo, quando se conecta outra conta Google), o app pergunta antes de limpar.
+- Remover um arquivo da própria pasta manda ele para a **lixeira** do Drive. Remover um arquivo vinculado de anotação só desfaz o vínculo.
+- O app só enxerga os arquivos que ele mesmo criou (escopo `drive.file`). Arquivos colocados à mão na pasta pelo site do Drive não aparecem.
+
 ## 2. Publicar as regras e o site
 
 Precisa do Node instalado:
