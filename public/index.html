@@ -216,10 +216,13 @@
         .list-copy-btn { flex: 0 0 30px; width: 30px; height: 30px; padding: 0; border: 1px solid var(--border); border-radius: 8px; color: var(--muted); background: transparent; }
         .list-copy-btn:hover, .list-copy-btn:focus { color: var(--terminal); border-color: var(--terminal); }
         .list-copy-btn.copied { color: var(--save-green); border-color: var(--save-green); }
-        .list-attach-btn { position: relative; flex: 0 0 30px; width: 30px; height: 30px; padding: 0; border: 1px solid var(--border); border-radius: 8px; color: var(--muted); background: transparent; }
+        .list-attach-btn { display: inline-flex; align-items: center; gap: 4px; flex: 0 0 auto; min-height: 30px; padding: 3px 8px 3px 6px; border: 1px solid var(--border); border-radius: 8px; color: var(--muted); background: rgba(255,255,255,.035); font-size: .72rem; }
         .list-attach-btn:hover, .list-attach-btn:focus { color: var(--terminal); border-color: var(--terminal); }
-        .list-attach-btn.has-files { color: var(--terminal); border-color: var(--terminal); background: rgba(0,242,255,.08); }
-        .attach-count { position: absolute; top: -7px; right: -7px; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 99px; background: var(--terminal); color: #000; font-size: .62rem; font-weight: 700; line-height: 17px; text-align: center; }
+        .list-attach-btn.has-files { color: var(--terminal); border-color: var(--terminal); background: rgba(0,242,255,.08); font-weight: 600; }
+        .list-attach-btn i { font-size: 1.05rem; line-height: 1; -webkit-text-stroke: .4px currentColor; display: inline-block; }
+        .task-more-btn i { font-size: 1.1rem; line-height: 1; -webkit-text-stroke: .4px currentColor; display: inline-block; }
+        .list-attach-btn i.bi-paperclip, .task-more-btn i.bi-paperclip { transform: rotate(40deg); }
+        .attach-count { position: absolute; top: -8px; right: -9px; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 99px; background: var(--terminal); color: #000; font-size: .62rem; font-weight: 700; line-height: 17px; text-align: center; }
         .attach-drop { border: 2px dashed var(--border); border-radius: 12px; padding: 18px; text-align: center; color: var(--muted); cursor: pointer; transition: border-color .15s, background .15s; }
         .attach-drop:hover, .attach-drop.over { border-color: var(--terminal); color: var(--terminal); background: rgba(0,242,255,.05); }
         .attach-file { display: flex; align-items: center; gap: 8px; padding: 7px 4px; border-bottom: 1px solid var(--border); }
@@ -640,6 +643,7 @@
                 <div class="d-flex flex-wrap gap-4 mb-3 small">
                     <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="rep-prev"><label class="form-check-label" for="rep-prev">Incluir dia anterior</label></div>
                     <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="rep-hours" checked><label class="form-check-label" for="rep-hours">Incluir horas do dia</label></div>
+                    <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="rep-details" checked><label class="form-check-label" for="rep-details">Incluir detalhes das tasks</label></div>
                     <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="rep-global" checked><label class="form-check-label" for="rep-global">Incluir anotações globais</label></div>
                 </div>
                 <textarea id="base-report-text" class="form-control" rows="16" style="color:#fff; font-size:.9rem; line-height:1.6; border-color:rgba(0,242,255,.15);"></textarea>
@@ -792,7 +796,7 @@
                 </div>
                 <div id="attach-connect" class="text-center py-3 d-none">
                     <p class="small text-secondary mb-3">Os arquivos ficam no <b>seu</b> Google Drive, na pasta <b>MyDaily</b>, com uma subpasta para cada anotação.</p>
-                    <button type="button" class="btn btn-cyber-primary" id="attach-connect-btn"><i class="bi bi-google me-1"></i>Conectar Google Drive</button>
+                    <button type="button" class="btn btn-cyber-primary" id="attach-connect-btn"><i class="bi bi-google me-1"></i>Permitir acesso ao Google Drive</button>
                 </div>
                 <div id="attach-body" class="d-none">
                     <div class="attach-drop mb-3" id="attach-drop" role="button" tabindex="0">
@@ -808,6 +812,7 @@
                     <div class="d-flex justify-content-between align-items-center mt-3 small">
                         <a href="#" target="_blank" rel="noopener" id="attach-folder-link" class="text-secondary d-none"><i class="bi bi-folder2-open me-1"></i>Abrir pasta no Drive</a>
                         <span class="text-secondary ms-auto" id="attach-account"></span>
+                        <button type="button" class="btn btn-link btn-sm text-secondary p-0 ms-2 d-none" id="attach-disconnect" title="Desconectar o Google Drive (os arquivos continuam no Drive)"><i class="bi bi-box-arrow-right"></i></button>
                     </div>
                 </div>
             </div>
@@ -845,9 +850,6 @@
         appId: "1:664603537896:web:9f425a2d3f16581fedf45d",
         measurementId: "G-4NNV1VQHK8"
     };
-    // Anexos no Google Drive do próprio usuário (pasta MyDaily). Console Firebase > Authentication >
-    // Sign-in method > Google > "ID do cliente da Web" (termina em .apps.googleusercontent.com). Vazio = anexos desligados.
-    const GOOGLE_DRIVE_CLIENT_ID = "";
 
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import {
@@ -2487,7 +2489,7 @@
                 attach.title = files.length ? `${files.length} anexo(s) · ${fmtBytes(files.reduce((s, f) => s + f.size, 0))} no Google Drive` : 'Anexar arquivos (Google Drive)';
                 attach.setAttribute('aria-label', attach.title);
                 attach.innerHTML = '<i class="bi bi-paperclip"></i>';
-                if (files.length) attach.append(el('span', 'attach-count', String(files.length)));
+                attach.append(files.length ? `Anexos · ${files.length}` : 'Anexos');
                 attach.addEventListener('click', () => openAttachments(i));
                 row.append(attach);
             }
@@ -3151,9 +3153,12 @@
     // ------------------------------------------------------------ Relatório
     function taskLines(r) {
         if (!r.tasks.length) return ['Nenhuma tarefa registrada.'];
-        return r.tasks.map(t => {
+        const withDetails = $('rep-details').checked;
+        return r.tasks.flatMap(t => {
             const h = parseHours(t.hour);
-            return `- ${t.desc || '(sem descrição)'}${h > 0 ? ` (${fmtH(h)})` : ''}`;
+            const line = `- ${t.desc || '(sem descrição)'}${h > 0 ? ` (${fmtH(h)})` : ''}`;
+            if (!withDetails || !t.details?.trim()) return [line];
+            return [line, ...t.details.trim().split('\n').map(d => '    ' + d.trimEnd())];
         });
     }
 
@@ -3566,8 +3571,27 @@
     const DRIVE_ROOT_NAME = 'MyDaily';
     const DRIVE_SECTION_NAME = { note: 'Anotações', task: 'Tasks' };
     const DRIVE_BLOB_DOWNLOAD_MAX = 500 * 1024 * 1024; // acima disso baixa direto pelo Drive (não cabe bem na memória da aba)
-    const drive = { uid: '', token: '', expiresAt: 0, email: '', folders: {} };
+    const drive = { uid: '', token: '', expiresAt: 0, email: '', folders: {}, clientId: '' };
     let gisLoading = null;
+    // O ID do cliente OAuth vem do próprio Firebase (o mesmo do login com Google): nada para configurar.
+    async function resolveDriveClientId() {
+        const cached = storageGet('mydaily_drive_client_id');
+        if (cached) return cached;
+        const res = await fetch('https://identitytoolkit.googleapis.com/v1/accounts:createAuthUri?key=' + FIREBASE_CONFIG.apiKey, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ providerId: 'google.com', continueUri: `https://${FIREBASE_CONFIG.authDomain}/__/auth/handler` }),
+        });
+        const data = await res.json().catch(() => ({}));
+        let id = '';
+        try { id = new URL(data.authUri).searchParams.get('client_id') || ''; } catch { /* sem authUri */ }
+        if (!id) throw new Error('O login com Google não está habilitado no Firebase (Authentication > Sign-in method > Google).');
+        storageSet('mydaily_drive_client_id', id);
+        return id;
+    }
+    // Deixa tudo pronto antes do clique: o popup do Google só abre se for chamado direto do clique
+    function prepareDrive() {
+        return Promise.all([loadGis(), resolveDriveClientId()]).then(([, id]) => { drive.clientId = id; return id; });
+    }
     // Alvo do modal: { kind: 'note', index, text, folder } (linha das anotações) ou { kind: 'task', id } (task de um dia)
     let attachTarget = { kind: 'note', index: -1, text: '', folder: '' };
     let attachState = {};
@@ -3600,7 +3624,7 @@
     function requestDriveToken(prompt) {
         return new Promise((resolve, reject) => {
             const client = google.accounts.oauth2.initTokenClient({
-                client_id: GOOGLE_DRIVE_CLIENT_ID,
+                client_id: drive.clientId,
                 scope: DRIVE_SCOPE,
                 login_hint: state.user?.email || undefined,
                 callback: r => {
@@ -3616,19 +3640,26 @@
         });
     }
     function connectDrive(prompt) {
-        if (!window.google?.accounts?.oauth2) {
-            toast('Carregando o login do Google… tente de novo em instantes.', 'info');
-            loadGis().catch(e => toast(e.message, 'warning'));
-            return;
+        if (!window.google?.accounts?.oauth2 || !drive.clientId) {
+            toast('Preparando o login do Google… clique de novo em instantes.', 'info');
+            prepareDrive().catch(e => toast(e.message, 'warning'));
+            return Promise.resolve();
         }
         attachState.loading = true;
         renderAttachModal();
-        requestDriveToken(prompt)
+        return requestDriveToken(prompt)
             .then(async () => {
                 try { drive.email = (await (await driveFetch('about?fields=user(emailAddress)')).json()).user?.emailAddress || ''; } catch { /* só informativo */ }
                 return validateAttachments();
             })
-            .catch(e => { attachState.loading = false; renderAttachModal(); if (prompt !== '') toast(e.message, 'warning'); });
+            .catch(e => { attachState.loading = false; renderAttachModal(); if (prompt !== '') toast(e.message, 'warning'); })
+    }
+    function disconnectDrive() {
+        if (drive.token) { try { google.accounts.oauth2.revoke(drive.token, () => {}); } catch { /* já revogado */ } }
+        Object.assign(drive, { uid: '', token: '', expiresAt: 0, email: '', folders: {} });
+        try { localStorage.removeItem(driveGrantKey()); } catch { /* sem storage */ }
+        renderAttachModal();
+        toast('Google Drive desconectado. Os arquivos continuam no seu Drive.', 'info');
     }
 
     async function driveFetch(url, { allow404 = false, ...opts } = {}) {
@@ -3639,6 +3670,9 @@
         if (!res.ok) {
             let msg = 'erro ' + res.status;
             try { msg = (await res.json()).error.message || msg; } catch { /* sem corpo */ }
+            if (/has not been used|is disabled|accessNotConfigured|SERVICE_DISABLED/i.test(msg)) {
+                throw new Error(`A API do Google Drive está desligada no projeto. Ative uma vez em https://console.cloud.google.com/apis/library/drive.googleapis.com?project=${FIREBASE_CONFIG.projectId} e tente de novo em alguns minutos.`);
+            }
             throw new Error('Google Drive: ' + msg);
         }
         return res;
@@ -3718,7 +3752,6 @@
     function openAttachments(i) {
         const it = parseLine(getLines()[i] ?? '');
         if (it.blank) return;
-        if (!GOOGLE_DRIVE_CLIENT_ID) return toast('Anexos desligados: falta o GOOGLE_DRIVE_CLIENT_ID no index.html (veja o LEIA-ME).', 'warning');
         attachTarget = { kind: 'note', index: i, text: it.text, folder: it.folder };
         showAttachModal();
     }
@@ -3736,10 +3769,10 @@
         $('attach-uploads').replaceChildren();
         renderAttachModal();
         bootstrap.Modal.getOrCreateInstance($('attachModal')).show();
-        if (!GOOGLE_DRIVE_CLIENT_ID) return;
         if (driveConnected()) validateAttachments();
-        else if (window.google?.accounts?.oauth2 && storageGet(driveGrantKey())) connectDrive('');
-        else loadGis().catch(e => toast(e.message, 'warning'));
+        // ainda no clique: já abre o pedido de permissão do Google (na 1ª vez com a tela de consentimento)
+        else if (window.google?.accounts?.oauth2 && drive.clientId) connectDrive(storageGet(driveGrantKey()) ? '' : 'consent');
+        else prepareDrive().catch(e => { attachState.error = e.message; renderAttachModal(); });
     }
 
     // Confere no Drive cada arquivo referenciado e a pasta do item.
@@ -3929,13 +3962,13 @@
     function renderAttachModal() {
         const it = attachItem();
         const isTask = attachTarget.kind === 'task';
-        const enabled = !!GOOGLE_DRIVE_CLIENT_ID;
         const connected = driveConnected();
         $('attach-title').innerHTML = isTask ? '<i class="bi bi-card-text me-1"></i>TASK' : '<i class="bi bi-paperclip me-1"></i>ANEXOS';
         $('attach-item').textContent = it && !isTask ? it.text : '';
         $('attach-task-fields').classList.toggle('d-none', !isTask);
-        $('attach-connect').classList.toggle('d-none', !enabled || connected || attachState.loading);
-        $('attach-body').classList.toggle('d-none', !enabled || (!connected && !attachState.loading));
+        $('attach-connect').classList.toggle('d-none', connected || attachState.loading);
+        $('attach-body').classList.toggle('d-none', !connected && !attachState.loading);
+        $('attach-disconnect').classList.toggle('d-none', !connected);
 
         const list = $('attach-list');
         list.replaceChildren();
@@ -3998,6 +4031,7 @@
     }
 
     $('attach-connect-btn').addEventListener('click', () => connectDrive(storageGet(driveGrantKey()) ? '' : 'consent'));
+    $('attach-disconnect').addEventListener('click', disconnectDrive);
     $('attach-drop').addEventListener('click', () => $('attach-input').click());
     $('attach-drop').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('attach-input').click(); } });
     $('attach-drop').addEventListener('dragover', e => { if (e.dataTransfer?.types.includes('Files')) { e.preventDefault(); $('attach-drop').classList.add('over'); } });
@@ -4149,6 +4183,7 @@
 
     async function onLogin(user) {
         state.user = user;
+        prepareDrive().catch(() => { /* tenta de novo ao abrir os anexos */ });
         const name = user.displayName || user.email || 'Usuário';
         $('user-name').textContent = name.split(' ')[0];
         $('user-email').textContent = user.email || name;
@@ -4202,9 +4237,11 @@
         $('rep-prev').addEventListener('change', e => { storageSet('mydaily_rep_prev', e.target.checked ? '1' : '0'); $('base-report-text').value = buildReport(); });
         $('rep-global').addEventListener('change', e => { storageSet('mydaily_rep_global', e.target.checked ? '1' : '0'); $('base-report-text').value = buildReport(); });
         $('rep-hours').addEventListener('change', e => { storageSet('mydaily_rep_hours', e.target.checked ? '1' : '0'); $('base-report-text').value = buildReport(); });
+        $('rep-details').addEventListener('change', e => { storageSet('mydaily_rep_details', e.target.checked ? '1' : '0'); $('base-report-text').value = buildReport(); });
         $('rep-prev').checked = storageGet('mydaily_rep_prev') === '1';
         $('rep-global').checked = storageGet('mydaily_rep_global') !== '0';
         $('rep-hours').checked = storageGet('mydaily_rep_hours') !== '0';
+        $('rep-details').checked = storageGet('mydaily_rep_details') !== '0';
         $('btn-copy').addEventListener('click', copyReport);
 
         $('queue-field').addEventListener('input', e => { state.profile.queue = mergeQueueEditorText(state.profile.queue, e.target.value); autosize(e.target); markProfileDirty(); });
