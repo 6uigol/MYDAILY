@@ -484,6 +484,7 @@
                     <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill ms-1" id="btn-today">Hoje</button>
                 </div>
                 <button type="button" class="btn btn-outline-info header-btn px-3" id="btn-report"><i class="bi bi-clipboard-data me-1"></i>RELATÓRIO</button>
+                <a href="https://drive.google.com/drive/search?q=type%3Afolder%20MyDaily" target="_blank" rel="noopener" class="btn btn-outline-success header-btn px-3 drive-root-link" title="Abrir a pasta MyDaily no Google Drive (anexos das anotações e tasks)"><i class="bi bi-folder2-open me-1"></i>DRIVE</a>
                 <button type="button" class="btn btn-cyber-primary header-btn" id="btn-save" title="Salvar agora (Ctrl+S)"><i class="bi bi-cloud-arrow-up me-1"></i>SALVAR</button>
                 <div class="dropdown">
                     <button type="button" class="btn btn-outline-secondary header-btn dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
@@ -492,6 +493,7 @@
                     <ul class="dropdown-menu dropdown-menu-end">
                         <li><h6 class="dropdown-header text-truncate" style="max-width:260px" id="user-email"></h6></li>
                         <li><button type="button" class="dropdown-item" id="btn-settings"><i class="bi bi-gear me-2"></i>Configurações</button></li>
+                        <li><a class="dropdown-item drive-root-link" href="https://drive.google.com/drive/search?q=type%3Afolder%20MyDaily" target="_blank" rel="noopener"><i class="bi bi-folder2-open me-2"></i>Pasta MyDaily no Google Drive</a></li>
                         <li><button type="button" class="dropdown-item" id="btn-export"><i class="bi bi-download me-2"></i>Exportar backup (.json)</button></li>
                         <li><button type="button" class="dropdown-item" id="btn-import"><i class="bi bi-upload me-2"></i>Importar backup (substitui tudo)</button></li>
                         <li><hr class="dropdown-divider"></li>
@@ -799,6 +801,10 @@
                     <button type="button" class="btn btn-cyber-primary" id="attach-connect-btn"><i class="bi bi-google me-1"></i>Permitir acesso ao Google Drive</button>
                 </div>
                 <div id="attach-body" class="d-none">
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                        <a href="#" target="_blank" rel="noopener" id="attach-folder-link" class="btn btn-sm btn-outline-success d-none"><i class="bi bi-folder2-open me-1"></i><span id="attach-folder-label">Abrir pasta desta anotação no Drive</span></a>
+                        <a href="https://drive.google.com/drive/search?q=type%3Afolder%20MyDaily" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary drive-root-link"><i class="bi bi-google me-1"></i>Pasta MyDaily</a>
+                    </div>
                     <div class="attach-drop mb-3" id="attach-drop" role="button" tabindex="0">
                         <i class="bi bi-cloud-arrow-up fs-3 d-block"></i>
                         Clique ou arraste arquivos aqui
@@ -810,7 +816,6 @@
                         <div id="attach-notes-list"></div>
                     </div>
                     <div class="d-flex justify-content-between align-items-center mt-3 small">
-                        <a href="#" target="_blank" rel="noopener" id="attach-folder-link" class="text-secondary d-none"><i class="bi bi-folder2-open me-1"></i>Abrir pasta no Drive</a>
                         <span class="text-secondary ms-auto" id="attach-account"></span>
                         <button type="button" class="btn btn-link btn-sm text-secondary p-0 ms-2 d-none" id="attach-disconnect" title="Desconectar o Google Drive (os arquivos continuam no Drive)"><i class="bi bi-box-arrow-right"></i></button>
                     </div>
@@ -3632,6 +3637,7 @@
         return requestDriveToken(prompt)
             .then(async () => {
                 try { drive.email = (await (await driveFetch('about?fields=user(emailAddress)')).json()).user?.emailAddress || ''; } catch { /* só informativo */ }
+                findDriveFolder(DRIVE_ROOT_NAME, 'root').then(id => { if (id) { drive.folders.root = id; rememberDriveRoot(id); } }).catch(() => { /* só para o link */ });
                 return validateAttachments();
             })
             .catch(e => { attachState.loading = false; renderAttachModal(); if (prompt !== '') toast(e.message, 'warning'); })
@@ -3673,10 +3679,25 @@
         });
         return (await res.json()).id;
     }
-    async function findOrCreateDriveFolder(name, parentId) {
+    async function findDriveFolder(name, parentId) {
         const q = `name=${driveQuote(name)} and mimeType='${DRIVE_FOLDER_MIME}' and trashed=false and '${parentId}' in parents`;
         const found = await (await driveFetch('files?pageSize=1&fields=files(id)&q=' + encodeURIComponent(q))).json();
-        return found.files?.[0]?.id || createDriveFolder(name, parentId);
+        return found.files?.[0]?.id || '';
+    }
+    async function findOrCreateDriveFolder(name, parentId) {
+        return await findDriveFolder(name, parentId) || createDriveFolder(name, parentId);
+    }
+    // Botões "DRIVE" / "Pasta MyDaily": vão direto para a pasta quando o id já é conhecido; senão, buscam por ela no Drive
+    const driveRootKey = () => 'mydaily_drive_root_' + (state.user?.uid || '');
+    function renderDriveRootLinks() {
+        const id = storageGet(driveRootKey());
+        const href = id ? `https://drive.google.com/drive/folders/${id}` : 'https://drive.google.com/drive/search?q=type%3Afolder%20' + encodeURIComponent(DRIVE_ROOT_NAME);
+        document.querySelectorAll('.drive-root-link').forEach(a => { a.href = href; });
+    }
+    function rememberDriveRoot(id) {
+        if (!id || id === storageGet(driveRootKey())) return;
+        storageSet(driveRootKey(), id);
+        renderDriveRootLinks();
     }
     function itemFolderName(text) {
         return String(text).replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 100) || 'Sem título';
@@ -3810,6 +3831,7 @@
         if (it.folder && !attachState.folderMissing && !attachState.unverified) return it.folder;
         try {
             drive.folders.root ||= await findOrCreateDriveFolder(DRIVE_ROOT_NAME, 'root');
+            rememberDriveRoot(drive.folders.root);
             const section = DRIVE_SECTION_NAME[attachTarget.kind];
             drive.folders[section] ||= await findOrCreateDriveFolder(section, drive.folders.root);
             const id = await createDriveFolder(itemFolderName(it.text), drive.folders[section]);
@@ -4005,6 +4027,7 @@
         const folderLink = $('attach-folder-link');
         folderLink.classList.toggle('d-none', !it?.folder || attachState.folderMissing || attachState.unverified);
         if (it?.folder) folderLink.href = `https://drive.google.com/drive/folders/${it.folder}`;
+        $('attach-folder-label').textContent = isTask ? 'Abrir pasta desta task no Drive' : 'Abrir pasta desta anotação no Drive';
         const total = files.reduce((s, f) => s + f.size, 0);
         $('attach-account').textContent = attachState.loading ? 'Conferindo no Google Drive…'
             : attachState.error ? attachState.error
@@ -4164,6 +4187,7 @@
 
     async function onLogin(user) {
         state.user = user;
+        renderDriveRootLinks();
         const name = user.displayName || user.email || 'Usuário';
         $('user-name').textContent = name.split(' ')[0];
         $('user-email').textContent = user.email || name;
