@@ -32,13 +32,12 @@ MyDaily/
 ```
 
 Não há nada para configurar. Na primeira vez que o usuário clica no clipe de uma anotação (ou no `…` de uma task), o Google pede permissão para o MyDaily usar o Drive. Depois que o usuário permite, o app cria as pastas e cuida do resto. Nas vezes seguintes, ele reconecta sozinho. O ícone de saída no rodapé da tela de anexos desconecta a conta.
-O app usa automaticamente o mesmo cliente OAuth do login com Google do Firebase.
+A permissão do Drive é pedida pelo mesmo popup do Firebase usado no login com Google, que passa pelo handler do `authDomain`. Por isso não é preciso cadastrar origens JavaScript no Google Cloud, e o `origin_mismatch` não acontece. Quem entra com Google precisa escolher a mesma conta. Quem entra com e-mail e senha tem a conta Google vinculada ao seu login.
 
 Pré-requisitos do projeto, feitos **uma vez só** pelo dono do projeto:
-1. **Authentication → Sign-in method → Google** habilitado. É de lá que o app pega o cliente OAuth.
+1. **Authentication → Sign-in method → Google** habilitado (o mesmo que o login com Google já usa).
 2. **Google Drive API** ativada em https://console.cloud.google.com/apis/library/drive.googleapis.com?project=mydaily-dcccb. Se faltar, o próprio app mostra esse link na tela de anexos.
-3. Se o popup do Google mostrar `origin_mismatch`: em **APIs e serviços → Credenciais → Web client (auto created by Google Service) → Origens JavaScript autorizadas**, adicione o endereço do site (por exemplo, `https://mydaily-dcccb.web.app` ou `http://localhost:3000`).
-4. Se aparecer "app não verificado" ou "acesso bloqueado" para outros usuários: em **Tela de permissão OAuth**, deixe o app **Em produção**. O escopo `drive.file` não exige verificação do Google.
+3. Se aparecer "app não verificado" ou "acesso bloqueado" para outros usuários: em **Tela de permissão OAuth**, deixe o app **Em produção**. O escopo `drive.file` não exige verificação do Google.
 
 Uso:
 - **Anotações:** o clipe de cada item abre a tela de anexos, onde dá para enviar (clique ou arraste), baixar, remover e abrir a pasta no Drive. O número no clipe é a quantidade de anexos.

@@ -854,7 +854,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import {
         getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword,
-        sendPasswordResetEmail, signOut, GoogleAuthProvider, signInWithPopup
+        sendPasswordResetEmail, signOut, GoogleAuthProvider, signInWithPopup, reauthenticateWithPopup, linkWithPopup
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import {
         initializeFirestore, getFirestore, persistentLocalCache, persistentMultipleTabManager,
@@ -3571,27 +3571,9 @@
     const DRIVE_ROOT_NAME = 'MyDaily';
     const DRIVE_SECTION_NAME = { note: 'Anotações', task: 'Tasks' };
     const DRIVE_BLOB_DOWNLOAD_MAX = 500 * 1024 * 1024; // acima disso baixa direto pelo Drive (não cabe bem na memória da aba)
-    const drive = { uid: '', token: '', expiresAt: 0, email: '', folders: {}, clientId: '' };
-    let gisLoading = null;
-    // O ID do cliente OAuth vem do próprio Firebase (o mesmo do login com Google): nada para configurar.
-    async function resolveDriveClientId() {
-        const cached = storageGet('mydaily_drive_client_id');
-        if (cached) return cached;
-        const res = await fetch('https://identitytoolkit.googleapis.com/v1/accounts:createAuthUri?key=' + FIREBASE_CONFIG.apiKey, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ providerId: 'google.com', continueUri: `https://${FIREBASE_CONFIG.authDomain}/__/auth/handler` }),
-        });
-        const data = await res.json().catch(() => ({}));
-        let id = '';
-        try { id = new URL(data.authUri).searchParams.get('client_id') || ''; } catch { /* sem authUri */ }
-        if (!id) throw new Error('O login com Google não está habilitado no Firebase (Authentication > Sign-in method > Google).');
-        storageSet('mydaily_drive_client_id', id);
-        return id;
-    }
-    // Deixa tudo pronto antes do clique: o popup do Google só abre se for chamado direto do clique
-    function prepareDrive() {
-        return Promise.all([loadGis(), resolveDriveClientId()]).then(([, id]) => { drive.clientId = id; return id; });
-    }
+    const drive = { uid: '', token: '', expiresAt: 0, email: '', folders: {} };
+    // O token do Drive vem do popup do próprio Firebase Auth (o mesmo do login com Google),
+    // que passa pelo handler do authDomain: nenhuma origem para cadastrar no Google Cloud.
     // Alvo do modal: { kind: 'note', index, text, folder } (linha das anotações) ou { kind: 'task', id } (task de um dia)
     let attachTarget = { kind: 'note', index: -1, text: '', folder: '' };
     let attachState = {};
@@ -3609,42 +3591,42 @@
     const driveGrantKey = () => 'mydaily_drive_ok_' + (state.user?.uid || '');
     const driveConnected = () => !!drive.token && drive.uid === state.user?.uid && Date.now() < drive.expiresAt - 60000;
 
-    function loadGis() {
-        if (window.google?.accounts?.oauth2) return Promise.resolve();
-        return gisLoading ||= new Promise((resolve, reject) => {
-            const s = document.createElement('script');
-            s.src = 'https://accounts.google.com/gsi/client';
-            s.async = true;
-            s.onload = resolve;
-            s.onerror = () => { gisLoading = null; reject(new Error('Não foi possível carregar o login do Google.')); };
-            document.head.append(s);
-        });
+    function driveTokenError(e) {
+        const code = e?.code || '';
+        if (/popup-closed-by-user|cancelled-popup-request/.test(code)) return new Error('A janela do Google foi fechada.');
+        if (/popup-blocked/.test(code)) return new Error('O navegador bloqueou a janela do Google. Libere popups para este site.');
+        if (/user-mismatch/.test(code)) return new Error('Escolha a mesma conta Google usada para entrar no MyDaily.');
+        return new Error('Não foi possível conectar ao Google Drive: ' + (code || e?.message || e));
     }
-    // Precisa ser chamado direto do clique: o Google abre um popup
-    function requestDriveToken(prompt) {
-        return new Promise((resolve, reject) => {
-            const client = google.accounts.oauth2.initTokenClient({
-                client_id: drive.clientId,
-                scope: DRIVE_SCOPE,
-                login_hint: state.user?.email || undefined,
-                callback: r => {
-                    if (r.error) return reject(new Error(r.error_description || r.error));
-                    if (!google.accounts.oauth2.hasGrantedAllScopes(r, DRIVE_SCOPE)) return reject(new Error('Permissão do Google Drive não concedida.'));
-                    Object.assign(drive, { uid: state.user?.uid || '', token: r.access_token, expiresAt: Date.now() + Number(r.expires_in || 3600) * 1000, email: '', folders: {} });
-                    storageSet(driveGrantKey(), '1');
-                    resolve();
-                },
-                error_callback: e => reject(new Error(e?.type === 'popup_closed' ? 'A janela do Google foi fechada.' : 'Não foi possível abrir o login do Google (popup bloqueado?).')),
-            });
-            client.requestAccessToken({ prompt });
-        });
+    // Precisa ser chamado direto do clique: o Firebase abre um popup.
+    // Conta com Google: reautentica pedindo o escopo do Drive.
+    // Conta com e-mail/senha: vincula a conta Google (se ela já for de outro usuário, o token vem no próprio erro).
+    async function requestDriveToken(prompt) {
+        const user = auth.currentUser;
+        if (!user) throw new Error('Entre no MyDaily primeiro.');
+        const provider = new GoogleAuthProvider();
+        provider.addScope(DRIVE_SCOPE);
+        const hasGoogle = user.providerData.some(p => p.providerId === 'google.com');
+        const params = prompt === 'consent' ? { prompt: 'consent' } : {};
+        const hint = user.providerData.find(p => p.providerId === 'google.com')?.email || user.email;
+        if (hint) params.login_hint = hint;
+        provider.setCustomParameters(params);
+        let cred;
+        try {
+            cred = GoogleAuthProvider.credentialFromResult(await (hasGoogle ? reauthenticateWithPopup(user, provider) : linkWithPopup(user, provider)));
+        } catch (e) {
+            cred = !hasGoogle && /credential-already-in-use|email-already-in-use/.test(e?.code || '') ? GoogleAuthProvider.credentialFromError(e) : null;
+            if (!cred) throw driveTokenError(e);
+        }
+        const token = cred?.accessToken;
+        if (!token) throw new Error('O Google não devolveu o acesso ao Drive.');
+        // Confere se o escopo do Drive foi concedido e quanto tempo o token vale
+        const info = await fetch('https://oauth2.googleapis.com/tokeninfo?access_token=' + encodeURIComponent(token)).then(r => r.json()).catch(() => ({}));
+        if (info.scope && !info.scope.split(' ').includes(DRIVE_SCOPE)) throw new Error('Permissão do Google Drive não concedida. Marque a opção do Drive na janela do Google.');
+        Object.assign(drive, { uid: user.uid, token, expiresAt: Date.now() + Number(info.expires_in || 3500) * 1000, email: '', folders: {} });
+        storageSet(driveGrantKey(), '1');
     }
     function connectDrive(prompt) {
-        if (!window.google?.accounts?.oauth2 || !drive.clientId) {
-            toast('Preparando o login do Google… clique de novo em instantes.', 'info');
-            prepareDrive().catch(e => toast(e.message, 'warning'));
-            return Promise.resolve();
-        }
         attachState.loading = true;
         renderAttachModal();
         return requestDriveToken(prompt)
@@ -3655,7 +3637,7 @@
             .catch(e => { attachState.loading = false; renderAttachModal(); if (prompt !== '') toast(e.message, 'warning'); })
     }
     function disconnectDrive() {
-        if (drive.token) { try { google.accounts.oauth2.revoke(drive.token, () => {}); } catch { /* já revogado */ } }
+        if (drive.token) fetch('https://oauth2.googleapis.com/revoke?token=' + encodeURIComponent(drive.token), { method: 'POST', mode: 'no-cors' }).catch(() => { /* já revogado */ });
         Object.assign(drive, { uid: '', token: '', expiresAt: 0, email: '', folders: {} });
         try { localStorage.removeItem(driveGrantKey()); } catch { /* sem storage */ }
         renderAttachModal();
@@ -3771,8 +3753,7 @@
         bootstrap.Modal.getOrCreateInstance($('attachModal')).show();
         if (driveConnected()) validateAttachments();
         // ainda no clique: já abre o pedido de permissão do Google (na 1ª vez com a tela de consentimento)
-        else if (window.google?.accounts?.oauth2 && drive.clientId) connectDrive(storageGet(driveGrantKey()) ? '' : 'consent');
-        else prepareDrive().catch(e => { attachState.error = e.message; renderAttachModal(); });
+        else connectDrive(storageGet(driveGrantKey()) ? '' : 'consent');
     }
 
     // Confere no Drive cada arquivo referenciado e a pasta do item.
@@ -4183,7 +4164,6 @@
 
     async function onLogin(user) {
         state.user = user;
-        prepareDrive().catch(() => { /* tenta de novo ao abrir os anexos */ });
         const name = user.displayName || user.email || 'Usuário';
         $('user-name').textContent = name.split(' ')[0];
         $('user-email').textContent = user.email || name;
