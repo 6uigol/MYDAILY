@@ -3163,11 +3163,14 @@
     function taskLines(r) {
         if (!r.tasks.length) return ['Nenhuma tarefa registrada.'];
         const withDetails = $('rep-details').checked;
-        return r.tasks.flatMap(t => {
+        // Com detalhes, uma linha em branco entre as tasks para não ficar tudo junto
+        const spaced = withDetails && r.tasks.some(t => t.details?.trim());
+        return r.tasks.flatMap((t, i) => {
             const h = parseHours(t.hour);
             const line = `- ${t.desc || '(sem descrição)'}${h > 0 ? ` (${fmtH(h)})` : ''}`;
-            if (!withDetails || !t.details?.trim()) return [line];
-            return [line, ...t.details.trim().split('\n').map(d => '    ' + d.trimEnd())];
+            const gap = spaced && i > 0 ? [''] : [];
+            if (!withDetails || !t.details?.trim()) return [...gap, line];
+            return [...gap, line, ...t.details.trim().split('\n').map(d => '    ' + d.trimEnd())];
         });
     }
 
@@ -3921,8 +3924,12 @@
     }
     // Arquivo da própria pasta vai para a lixeira do Drive; arquivo vinculado de uma anotação só é desvinculado
     async function removeAttachment(f) {
+        if (!driveConnected()) { renderAttachModal(); return toast('Conecte o Google Drive para excluir o arquivo de lá também.', 'warning'); }
         const it = attachItem();
-        const own = !!it?.folder && !!attachState.listing?.get(f.id)?.parents?.includes(it.folder);
+        // A conferência pode não ter terminado (ou ter falhado): pergunta ao Drive de onde é o arquivo antes de decidir
+        let live = attachState.listing?.get(f.id);
+        if (!live?.parents && driveConnected()) { try { live = await fetchDriveFile(f.id); } catch { /* decide sem a pasta */ } }
+        const own = !!it?.folder && !!live?.parents?.includes(it.folder);
         const unlink = () => updateAttachItem(x => { x.files = (x.files || []).filter(file => file.id !== f.id); });
         if (!own) {
             if (!confirm(`Desvincular “${f.name}” daqui?\nO arquivo continua no Drive e onde mais estiver vinculado.`)) return;
