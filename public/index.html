@@ -145,6 +145,10 @@
         .date-pill { border-radius: 999px; display: flex; align-items: center; gap: 2px; padding: 6px 10px; }
         .date-pill input { background: transparent; border: none; color: #fff; font-weight: 700; outline: none; color-scheme: dark; font-size: 1rem; }
         .header-btn { height: 48px; border-radius: 14px; font-weight: 700; }
+        .btn-drive { display: inline-flex; align-items: center; justify-content: center; gap: .1rem; color: #2ee6a6; border: 1px solid #2ee6a6; background: rgba(46,230,166,.06); }
+        .btn-drive:hover, .btn-drive:focus-visible { color: #04140e; background: #2ee6a6; border-color: #2ee6a6; box-shadow: 0 0 18px rgba(46,230,166,.35); }
+        html[data-bs-theme="light"] #app .btn-drive { color: #0b8a5f; border-color: #0b8a5f; background: transparent; }
+        html[data-bs-theme="light"] #app .btn-drive:hover { color: #fff; background: #0b8a5f; }
 
         .day-card { transition: border-color .2s; }
         .day-card.selected { border-color: rgba(61, 90, 254, .55); box-shadow: 0 0 0 1px rgba(61,90,254,.25), 0 15px 35px rgba(0,0,0,.6); }
@@ -484,7 +488,7 @@
                     <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill ms-1" id="btn-today">Hoje</button>
                 </div>
                 <button type="button" class="btn btn-outline-info header-btn px-3" id="btn-report"><i class="bi bi-clipboard-data me-1"></i>RELATÓRIO</button>
-                <a href="https://drive.google.com/drive/search?q=type%3Afolder%20MyDaily" target="_blank" rel="noopener" class="btn btn-outline-success header-btn px-3 drive-root-link" title="Abrir a pasta MyDaily no Google Drive (anexos das anotações e tasks)"><i class="bi bi-folder2-open me-1"></i>DRIVE</a>
+                <a href="https://drive.google.com/drive/search?q=type%3Afolder%20MyDaily" target="_blank" rel="noopener" class="btn btn-drive header-btn px-3 drive-root-link" title="Abrir a pasta MyDaily no Google Drive (anexos das anotações e tasks)"><i class="bi bi-folder2-open me-1"></i>DRIVE</a>
                 <button type="button" class="btn btn-cyber-primary header-btn" id="btn-save" title="Salvar agora (Ctrl+S)"><i class="bi bi-cloud-arrow-up me-1"></i>SALVAR</button>
                 <div class="dropdown">
                     <button type="button" class="btn btn-outline-secondary header-btn dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
@@ -802,7 +806,7 @@
                 </div>
                 <div id="attach-body" class="d-none">
                     <div class="d-flex flex-wrap gap-2 mb-3">
-                        <a href="#" target="_blank" rel="noopener" id="attach-folder-link" class="btn btn-sm btn-outline-success d-none"><i class="bi bi-folder2-open me-1"></i><span id="attach-folder-label">Abrir pasta desta anotação no Drive</span></a>
+                        <a href="#" target="_blank" rel="noopener" id="attach-folder-link" class="btn btn-sm btn-drive d-none"><i class="bi bi-folder2-open me-1"></i><span id="attach-folder-label">Abrir pasta desta anotação no Drive</span></a>
                         <a href="https://drive.google.com/drive/search?q=type%3Afolder%20MyDaily" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary drive-root-link"><i class="bi bi-google me-1"></i>Pasta MyDaily</a>
                     </div>
                     <div class="attach-drop mb-3" id="attach-drop" role="button" tabindex="0">
