@@ -236,6 +236,27 @@
         .attach-file .attach-size { flex: 0 0 auto; color: var(--muted); font-size: .78rem; }
         .attach-progress { height: 4px; border-radius: 99px; background: var(--border); overflow: hidden; }
         .attach-progress > div { height: 100%; width: 0; background: var(--terminal); transition: width .2s; }
+        .attach-preview { position: fixed; inset: 0; z-index: 2000; display: flex; flex-direction: column; background: rgba(0,0,0,.88); backdrop-filter: blur(4px); }
+        .attach-preview[hidden] { display: none; }
+        .attach-preview-bar { display: flex; align-items: center; gap: 8px; padding: 10px 14px; color: #e5e7eb; background: rgba(0,0,0,.55); border-bottom: 1px solid rgba(255,255,255,.08); }
+        .attach-preview-bar .name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+        .attach-preview-bar .count { color: #9ca3af; font-size: .8rem; flex: 0 0 auto; }
+        .attach-preview-bar .btn { color: #e5e7eb; border-color: rgba(255,255,255,.2); }
+        .attach-preview-bar .btn:hover { color: #000; background: var(--terminal); border-color: var(--terminal); }
+        .attach-preview-stage { position: relative; flex: 1 1 auto; min-height: 0; display: flex; overflow: auto; padding: 16px 56px; }
+        .attach-preview-content { flex: 1 1 auto; min-width: 0; min-height: 0; display: flex; align-items: center; justify-content: center; }
+        .attach-preview-content img { max-width: 100%; max-height: 100%; object-fit: contain; cursor: zoom-in; border-radius: 4px; box-shadow: 0 8px 40px rgba(0,0,0,.6); }
+        .attach-preview-stage.zoomed .attach-preview-content { flex: 0 0 auto; margin: auto; }
+        .attach-preview-stage.zoomed img { max-width: none; max-height: none; cursor: zoom-out; }
+        .attach-preview-content video { max-width: 100%; max-height: 100%; }
+        .attach-preview-content iframe { width: 100%; height: 100%; border: 0; background: #fff; border-radius: 4px; }
+        .attach-preview-content pre { width: 100%; max-width: 1100px; height: 100%; margin: 0; padding: 14px 16px; overflow: auto; color: #e5e7eb; background: #0b0b0e; border: 1px solid rgba(255,255,255,.1); border-radius: 8px; font-size: .85rem; white-space: pre-wrap; word-break: break-word; }
+        .attach-preview-msg { color: #d1d5db; text-align: center; }
+        .attach-preview-nav { position: fixed; top: 50%; transform: translateY(-50%); width: 42px; height: 42px; border-radius: 50%; border: 1px solid rgba(255,255,255,.2); background: rgba(0,0,0,.55); color: #fff; font-size: 1.3rem; display: flex; align-items: center; justify-content: center; z-index: 1; }
+        .attach-preview-nav:hover { background: var(--terminal); color: #000; }
+        .attach-preview-nav.prev { left: 8px; } .attach-preview-nav.next { right: 8px; }
+        .attach-preview-nav[hidden] { display: none; }
+        @media (max-width: 576px) { .attach-preview-stage { padding: 8px; } }
         @media (hover: none) { .list-grip { display: none; } }   /* arrastar com o dedo não funciona nesse tipo de arraste */
         .list-level-btn { flex: 0 0 30px; width: 30px; height: 30px; padding: 0; border: 1px solid rgba(255,145,0,.22); border-radius: 8px; color: var(--queue-color); background: rgba(255,145,0,.06); opacity: .72; }
         .list-level-btn:hover, .list-level-btn:focus { opacity: 1; border-color: var(--queue-color); background: rgba(255,145,0,.14); }
@@ -825,6 +846,22 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+    <!-- Visualizador de anexo (fica dentro do modal para o foco do Bootstrap não brigar com ele) -->
+    <div class="attach-preview" id="attach-preview" hidden tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="attach-preview-name">
+        <div class="attach-preview-bar">
+            <i class="bi bi-eye"></i>
+            <span class="name" id="attach-preview-name"></span>
+            <span class="count" id="attach-preview-count"></span>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="attach-preview-download" title="Baixar" aria-label="Baixar"><i class="bi bi-download"></i></button>
+            <a class="btn btn-sm btn-outline-secondary" id="attach-preview-drive" target="_blank" rel="noopener" title="Abrir no Google Drive" aria-label="Abrir no Google Drive"><i class="bi bi-box-arrow-up-right"></i></a>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="attach-preview-close" title="Fechar (Esc)" aria-label="Fechar"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <div class="attach-preview-stage" id="attach-preview-stage">
+            <button type="button" class="attach-preview-nav prev" id="attach-preview-prev" title="Anterior (←)" aria-label="Anterior"><i class="bi bi-chevron-left"></i></button>
+            <div class="attach-preview-content" id="attach-preview-content"></div>
+            <button type="button" class="attach-preview-nav next" id="attach-preview-next" title="Próximo (→)" aria-label="Próximo"><i class="bi bi-chevron-right"></i></button>
         </div>
     </div>
 </div>
@@ -3970,9 +4007,115 @@
         link.href = f.webViewLink || `https://drive.google.com/file/d/${f.id}/view`;
         link.target = '_blank'; link.rel = 'noopener';
         link.title = f.name;
+        // imagem, PDF, vídeo, áudio e texto abrem no visualizador; o resto continua indo para o Drive
+        link.addEventListener('click', e => {
+            if (e.ctrlKey || e.metaKey || e.shiftKey || !previewKind(f.name) || !driveConnected()) return;
+            e.preventDefault();
+            const siblings = [...row.parentElement.children].map(r => r._file).filter(x => x && previewKind(x.name));
+            openPreview(siblings, Math.max(0, siblings.findIndex(x => x.id === f.id)));
+        });
+        row._file = f;
         row.append(status, link, el('span', 'attach-size', sizeText));
         return row;
     }
+
+    // ------------------------------------------------------------ Visualizador de anexos
+    const PREVIEW_TYPES = {
+        image: { ext: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg', 'ico', 'avif'], max: 60 * 1024 * 1024 },
+        pdf: { ext: ['pdf'], max: 60 * 1024 * 1024 },
+        video: { ext: ['mp4', 'webm', 'ogv', 'mov', 'm4v'], max: 200 * 1024 * 1024 },
+        audio: { ext: ['mp3', 'wav', 'ogg', 'oga', 'm4a', 'aac', 'flac'], max: 100 * 1024 * 1024 },
+        text: { ext: ['txt', 'md', 'sql', 'log', 'json', 'xml', 'csv', 'tsv', 'js', 'ts', 'java', 'kt', 'py', 'html', 'htm', 'css', 'yml', 'yaml', 'ini', 'properties', 'sh', 'bat', 'ps1', 'cs', 'c', 'cpp', 'h', 'go', 'rb', 'php', 'gradle', 'env', 'conf', 'cfg'], max: 3 * 1024 * 1024 },
+    };
+    const PREVIEW_MIME = { svg: 'image/svg+xml', pdf: 'application/pdf', mov: 'video/quicktime', m4v: 'video/mp4', ogv: 'video/ogg', oga: 'audio/ogg', m4a: 'audio/mp4' };
+    const previewExt = name => (String(name).match(/\.([a-z0-9]+)$/i)?.[1] || '').toLowerCase();
+    function previewKind(name) {
+        const ext = previewExt(name);
+        return Object.keys(PREVIEW_TYPES).find(k => PREVIEW_TYPES[k].ext.includes(ext)) || null;
+    }
+    const preview = { files: [], index: 0, urls: new Map(), seq: 0 };
+
+    function openPreview(files, index) {
+        preview.files = files;
+        preview.index = index;
+        $('attach-preview').hidden = false;
+        $('attach-preview').focus();
+        showPreview();
+    }
+    function closePreview() {
+        preview.seq++;
+        $('attach-preview').hidden = true;
+        $('attach-preview-content').replaceChildren();
+        preview.urls.forEach(u => URL.revokeObjectURL(u));
+        preview.urls.clear();
+    }
+    function stepPreview(d) {
+        if (preview.files.length < 2) return;
+        preview.index = (preview.index + d + preview.files.length) % preview.files.length;
+        showPreview();
+    }
+    async function showPreview() {
+        const f = preview.files[preview.index];
+        const kind = previewKind(f.name);
+        const seq = ++preview.seq;
+        const box = $('attach-preview-content');
+        const stage = $('attach-preview-stage');
+        stage.classList.remove('zoomed');
+        $('attach-preview-name').textContent = f.name;
+        $('attach-preview-count').textContent = preview.files.length > 1 ? `${preview.index + 1} / ${preview.files.length}` : '';
+        $('attach-preview-prev').hidden = $('attach-preview-next').hidden = preview.files.length < 2;
+        $('attach-preview-drive').href = f.webViewLink || `https://drive.google.com/file/d/${f.id}/view`;
+        const message = html => { const m = el('div', 'attach-preview-msg'); m.innerHTML = html; box.replaceChildren(m); };
+        if (Number(f.size) > PREVIEW_TYPES[kind].max) {
+            return message(`<i class="bi bi-file-earmark fs-1 d-block mb-2"></i>Arquivo grande demais para visualizar aqui (${fmtBytes(f.size)}).<br>Use <b>Baixar</b> ou <b>Abrir no Google Drive</b>.`);
+        }
+        message('<span class="spinner-border"></span>');
+        try {
+            let url = preview.urls.get(f.id);
+            let blob = null;
+            if (!url || kind === 'text') {
+                blob = await (await driveFetch(`files/${f.id}?alt=media`)).blob();
+                if (seq !== preview.seq) return;
+                const type = PREVIEW_MIME[previewExt(f.name)] || blob.type;
+                if (kind !== 'text') { url = URL.createObjectURL(new Blob([blob], { type })); preview.urls.set(f.id, url); }
+            }
+            let node;
+            if (kind === 'image') {
+                node = el('img');
+                node.alt = f.name;
+                node.src = url;
+                node.addEventListener('click', () => stage.classList.toggle('zoomed'));
+            } else if (kind === 'pdf') {
+                node = el('iframe');
+                node.title = f.name;
+                node.src = url;
+            } else if (kind === 'video' || kind === 'audio') {
+                node = el(kind);
+                node.controls = true;
+                node.autoplay = true;
+                node.src = url;
+            } else {
+                const text = await blob.text();
+                if (seq !== preview.seq) return;
+                node = el('pre', null, text);
+            }
+            box.replaceChildren(node);
+        } catch (e) {
+            if (seq === preview.seq) message(`<i class="bi bi-exclamation-triangle fs-1 d-block mb-2"></i>${e.message.replace(/</g, '&lt;')}`);
+        }
+    }
+    $('attach-preview-close').addEventListener('click', closePreview);
+    $('attach-preview-prev').addEventListener('click', () => stepPreview(-1));
+    $('attach-preview-next').addEventListener('click', () => stepPreview(1));
+    $('attach-preview-download').addEventListener('click', e => downloadAttachment(preview.files[preview.index], e.currentTarget));
+    // clicar no fundo escuro fecha
+    $('attach-preview-stage').addEventListener('click', e => { if (e.target === e.currentTarget || e.target === $('attach-preview-content')) closePreview(); });
+    // Esc fecha só o visualizador (sem deixar o Bootstrap fechar o modal de anexos junto); setas trocam de arquivo
+    $('attach-preview').addEventListener('keydown', e => {
+        if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closePreview(); }
+        else if (e.key === 'ArrowLeft' && !/^(VIDEO|AUDIO)$/.test(e.target.tagName)) stepPreview(-1);
+        else if (e.key === 'ArrowRight' && !/^(VIDEO|AUDIO)$/.test(e.target.tagName)) stepPreview(1);
+    });
     function renderAttachModal() {
         const it = attachItem();
         const isTask = attachTarget.kind === 'task';
@@ -4068,7 +4211,7 @@
         if (e.target.value.trim()) found.task.details = e.target.value; else delete found.task.details;
         markDirty(found.k);
     });
-    $('attachModal').addEventListener('hidden.bs.modal', () => { if (attachTarget.kind === 'task') renderDays(); });
+    $('attachModal').addEventListener('hidden.bs.modal', () => { closePreview(); if (attachTarget.kind === 'task') renderDays(); });
 
     // ------------------------------------------------------------ Toast
     function toast(msg, type = 'info') {
