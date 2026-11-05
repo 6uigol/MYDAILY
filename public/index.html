@@ -597,8 +597,12 @@
                 </div>
                 <div class="glass-card p-4 mb-4" id="period-summary">
                     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-                        <h5 class="fw-bold mb-0" style="color:var(--terminal)">RESUMO E COMPARAÇÃO SEMANAL</h5>
+                        <h5 class="fw-bold mb-0" style="color:var(--terminal)" id="period-summary-title">RESUMO E COMPARAÇÃO SEMANAL</h5>
                         <div class="d-flex flex-wrap gap-2">
+                            <div class="btn-group" role="group" aria-label="Período do relatório">
+                                <button type="button" class="btn btn-sm btn-outline-info" id="period-week" aria-pressed="true">Semanal</button>
+                                <button type="button" class="btn btn-sm btn-outline-info" id="period-month" aria-pressed="false">Mensal</button>
+                            </div>
                             <button class="btn btn-sm btn-outline-info" id="export-csv">CSV</button>
                             <button class="btn btn-sm btn-outline-info" id="export-pdf">PDF</button>
                         </div>
@@ -948,6 +952,7 @@
         remoteUnsubscribe: null,
         conflicts: new Set(),
         remoteReports: new Map(),
+        inflight: new Map(),    // 'YYYY-MM-DD' -> JSON do que está sendo gravado agora (null = exclusão)
         charts: { trend: null, dist: null, extra: null, bank: null },
     };
 
@@ -1173,10 +1178,17 @@
             snap.docChanges().forEach(change => {
                 const k = change.doc.id;
                 if (!isDateKey(k)) return;
+                // Eco da própria gravação (ainda local): não é mudança de outro aparelho
+                if (change.doc.metadata.hasPendingWrites) return;
                 const incoming = change.type === 'removed' ? null : cleanReport(change.doc.data());
+                const incomingJson = incoming ? JSON.stringify(incoming) : null;
                 const current = state.reports[k];
-                const same = incoming && current && JSON.stringify(incoming) === JSON.stringify(cleanReport(current));
-                if (same) return;
+                const same = incoming && current && incomingJson === JSON.stringify(cleanReport(current));
+                if (same) { if (!state.dirtyDates.has(k)) state.savedReports[k] = cloneReport(incoming); return; }
+                // Confirmação do servidor do que este aparelho gravou (o updatedAt muda e o Firestore
+                // reenvia o documento). Se a pessoa continuou digitando, isso NÃO é conflito.
+                const saved = state.savedReports[k] ? JSON.stringify(cleanReport(state.savedReports[k])) : null;
+                if ((state.inflight.has(k) && state.inflight.get(k) === incomingJson) || saved === incomingJson) return;
                 if (state.dirtyDates.has(k)) { state.conflicts.add(k); state.remoteReports.set(k, incoming); changed = true; return; }
                 if (!incoming) { delete state.reports[k]; delete state.savedReports[k]; }
                 else { state.reports[k] = incoming; state.savedReports[k] = cloneReport(incoming); }
@@ -1237,6 +1249,7 @@
         state.profileDirty = false;
 
         const batch = writeBatch(db);
+        const committed = new Map();   // o que de fato vai para a nuvem neste save
         const historyVersions = [];
         const pendingHistoryEvents = new Map(dates.map(k => [k, [...(state.historyEvents.get(k) || [])]]));
         for (const k of dates) {
@@ -1250,8 +1263,9 @@
                 if (events.length) version.events = events;
                 historyVersions.push(version);
             }
-            if (isEmptyReport(r)) batch.delete(ref);
-            else batch.set(ref, reportDoc(r));
+            committed.set(k, r);
+            if (isEmptyReport(r)) { batch.delete(ref); state.inflight.set(k, null); }
+            else { batch.set(ref, reportDoc(r)); state.inflight.set(k, JSON.stringify(r)); }
         }
         if (profileDirty) {
             batch.set(userRef(), { queue: p.queue, notebook: p.notebook, settings: p.settings, updatedAt: serverTimestamp() }, { merge: true });
@@ -1262,8 +1276,12 @@
         try {
             await state.saving;
             dates.forEach(k => {
-                if (isEmptyReport(cleanReport(state.reports[k]))) { delete state.savedReports[k]; delete state.reports[k]; }
-                else state.savedReports[k] = cloneReport(state.reports[k]);
+                // Base = o que foi gravado (não o que foi digitado enquanto salvava)
+                const r = committed.get(k);
+                if (isEmptyReport(r)) {
+                    delete state.savedReports[k];
+                    if (!state.dirtyDates.has(k) && isEmptyReport(cleanReport(state.reports[k]))) delete state.reports[k];
+                } else state.savedReports[k] = cloneReport(r);
             });
             if (historyVersions.length) {
                 const historyBatch = writeBatch(db);
@@ -1295,6 +1313,7 @@
             return false;
         } finally {
             state.saving = null;
+            dates.forEach(k => state.inflight.delete(k));
             if (!state.retryTimer) refreshStatus();
         }
     }
@@ -3066,16 +3085,23 @@
         const expected = days.reduce((sum, k) => sum + expectedHours(k), 0);
         return { hours: round1(hours), taskCount, extra: round1(extra), expected: round1(expected), days: days.length };
     }
-    function updateWeeklySummary(sel) {
-        const days = calendarWeekKeys(sel);
-        const previousEnd = addDays(days[0] || sel, -1);
-        const previousDays = calendarWeekKeys(previousEnd);
+    async function updateWeeklySummary(sel) {
+        const mode = periodMode();
+        const range = periodRange(sel, mode);
+        const previousEnd = addDays(range[0], -1);
+        const previousRange = periodRange(previousEnd, mode);
+        $('period-summary-title').textContent = `RESUMO E COMPARAÇÃO ${mode === 'month' ? 'MENSAL' : 'SEMANAL'}`;
+        try { await ensureRange(previousRange[0], range.at(-1)); } catch (e) { console.error(e); }
+        if (sel !== state.selected || mode !== periodMode()) return;
+        const days = periodKeys(sel, mode);
+        const previousDays = periodKeys(previousEnd, mode);
         const current = weeklyMetrics(days);
         const previous = weeklyMetrics(previousDays);
         const delta = round1(current.hours - previous.hours);
+        const label = (r, fallback) => mode === 'month' ? monthLabel(r[0] || fallback) : `${fmtBR(r[0] || fallback)}–${fmtBR(r.at(-1) || fallback)}`;
         $('period-summary-text').textContent =
-            `Período atual (${fmtBR(days[0] || sel)}–${fmtBR(days.at(-1) || sel)}): ${fmtH(current.hours)} em ${current.taskCount} tasks, ${fmtH(current.extra)} extras. ` +
-            `Período anterior (${fmtBR(previousDays[0] || previousEnd)}–${fmtBR(previousDays.at(-1) || previousEnd)}): ${fmtH(previous.hours)} em ${previous.taskCount} tasks, ${fmtH(previous.extra)} extras. ` +
+            `${mode === 'month' ? 'Mês' : 'Semana'} atual (${label(range, sel)}): ${fmtH(current.hours)} em ${current.taskCount} tasks, ${fmtH(current.extra)} extras. ` +
+            `${mode === 'month' ? 'Mês' : 'Semana'} anterior (${label(previousRange, previousEnd)}): ${fmtH(previous.hours)} em ${previous.taskCount} tasks, ${fmtH(previous.extra)} extras. ` +
             `Variação: ${delta >= 0 ? '+' : '−'}${fmtH(Math.abs(delta))} e ${current.taskCount - previous.taskCount >= 0 ? '+' : ''}${current.taskCount - previous.taskCount} tasks; meta atual: ${fmtH(current.expected)}.`;
     }
 
@@ -3275,12 +3301,42 @@
         const week = calendarWeekRange(date);
         return week.filter(k => !skipWeekends() || !isWeekend(k) || !isEmptyReport(cleanReport(state.reports[k])));
     }
-    function selectedWeekKeys() { return calendarWeekKeys(state.selected); }
+    // Período do resumo/exportação: 'week' (segunda a domingo) ou 'month' (mês da data selecionada)
+    function periodMode() { return storageGet('mydaily_period') === 'month' ? 'month' : 'week'; }
+    function calendarMonthRange(date) {
+        const first = date.slice(0, 7) + '-01';
+        const out = [];
+        for (let k = first; k.startsWith(first.slice(0, 7)); k = addDays(k, 1)) out.push(k);
+        return out;
+    }
+    const periodRange = (date, mode = periodMode()) => mode === 'month' ? calendarMonthRange(date) : calendarWeekRange(date);
+    function periodKeys(date, mode = periodMode()) {
+        return periodRange(date, mode).filter(k => !skipWeekends() || !isWeekend(k) || !isEmptyReport(cleanReport(state.reports[k])));
+    }
+    const monthLabel = k => { const [y, m] = k.split('-').map(Number); return new Date(y, m - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }); };
+    function periodInfo(range, mode = periodMode()) {
+        return mode === 'month'
+            ? { file: `mydaily-mes-${range[0].slice(0, 7)}`, title: `Mês de ${monthLabel(range[0])}`, noun: 'mês', name: 'do mês selecionado' }
+            : { file: `mydaily-semana-${range[0]}-${range.at(-1)}`, title: `Semana ${fmtBR(range[0])} a ${fmtBR(range.at(-1))}`, noun: 'semana', name: 'da semana selecionada' };
+    }
+    function setPeriodMode(mode) {
+        storageSet('mydaily_period', mode);
+        syncPeriodButtons();
+        if (chartsVisible()) updateWeeklySummary(state.selected);
+    }
+    function syncPeriodButtons() {
+        const mode = periodMode();
+        for (const [id, m] of [['period-week', 'week'], ['period-month', 'month']]) {
+            $(id).classList.toggle('active', mode === m);
+            $(id).setAttribute('aria-pressed', String(mode === m));
+        }
+    }
     async function exportReportRows() {
         await flush();
-        const range = calendarWeekRange(state.selected);
+        const mode = periodMode();
+        const range = periodRange(state.selected, mode);
         await ensureRange(range[0], range.at(-1));
-        const week = selectedWeekKeys();
+        const week = periodKeys(state.selected, mode);
         // Grade 1: Data | Task | Horas.  Grade 2 (separada): Data | Comentários, um por dia.
         const taskRows = [], commentRows = [];
         week.forEach(k => {
@@ -3288,7 +3344,8 @@
             r.tasks.forEach(t => taskRows.push([fmtBR(k), t.desc, t.hour]));
             if (r.comments.trim()) commentRows.push([fmtBR(k), r.comments.trim()]);
         });
-        return { taskRows, commentRows, week };
+        const total = week.reduce((sum, k) => sum + totalHours(cleanReport(state.reports[k]).tasks), 0);
+        return { taskRows, commentRows, week, total, info: periodInfo(range, mode) };
     }
     const TASK_HEADER = ['Data', 'Task', 'Horas'];
     const COMMENT_HEADER = ['Data', 'Comentários'];
@@ -3296,15 +3353,15 @@
     const csvLines = rows => rows.map(row => row.map(csvCell).join(';'));
     async function exportCsv() {
         try {
-            const { taskRows, commentRows, week } = await exportReportRows();
+            const { taskRows, commentRows, total, info } = await exportReportRows();
             const csv = [
-                ...csvLines([TASK_HEADER, ...taskRows]),
+                ...csvLines([TASK_HEADER, ...taskRows, ['', 'TOTAL', fmtH(total)]]),
                 '',
                 csvCell('COMENTÁRIOS'),
                 ...csvLines([COMMENT_HEADER, ...commentRows]),
             ].join('\r\n');
-            downloadText(`mydaily-semana-${week[0]}-${week.at(-1)}.csv`, '\ufeff' + csv, 'text/csv;charset=utf-8');
-            toast('CSV da semana selecionada exportado.', 'success');
+            downloadText(`${info.file}.csv`, '\ufeff' + csv, 'text/csv;charset=utf-8');
+            toast(`CSV ${info.name} exportado.`, 'success');
         } catch (e) { toast('Falha ao exportar CSV: ' + (e.code || e.message), 'danger'); }
     }
     // PDF baixado direto como arquivo (sem abrir janela de impressão).
@@ -3328,7 +3385,7 @@
         const btn = $('export-pdf');
         btn.disabled = true;
         try {
-            const [{ taskRows, commentRows, week }] = await Promise.all([exportReportRows(), loadPdfLib()]);
+            const [{ taskRows, commentRows, total, info }] = await Promise.all([exportReportRows(), loadPdfLib()]);
             const pdf = new window.jspdf.jsPDF({ unit: 'pt', format: 'a4' });
             const left = 40;
             const table = {
@@ -3337,13 +3394,15 @@
                 headStyles: { fillColor: [61, 90, 254], textColor: 255, fontStyle: 'bold' },
             };
             pdf.setFontSize(16);
-            pdf.text(`MYDAILY — Semana ${fmtBR(week[0])} a ${fmtBR(week.at(-1))}`, left, 50);
+            pdf.text(`MYDAILY — ${info.title}`, left, 50);
 
             pdf.setFontSize(12);
             pdf.text('Tasks', left, 80);
             pdf.autoTable({
                 ...table, startY: 88, head: [TASK_HEADER],
-                body: taskRows.length ? taskRows : [['', 'Nenhuma task na semana.', '']],
+                body: taskRows.length ? taskRows : [['', `Nenhuma task no período (${info.noun}).`, '']],
+                foot: taskRows.length ? [['', 'TOTAL', fmtH(total)]] : undefined,
+                footStyles: { fillColor: [235, 238, 255], textColor: [34, 34, 34], fontStyle: 'bold' },
                 columnStyles: { 0: { cellWidth: 72 }, 2: { cellWidth: 50, halign: 'center' } },
             });
 
@@ -3353,12 +3412,12 @@
             pdf.text('Comentários', left, y);
             pdf.autoTable({
                 ...table, startY: y + 8, head: [COMMENT_HEADER],
-                body: commentRows.length ? commentRows : [['', 'Nenhum comentário na semana.']],
+                body: commentRows.length ? commentRows : [['', `Nenhum comentário no período (${info.noun}).`]],
                 columnStyles: { 0: { cellWidth: 72 } },
             });
 
-            pdf.save(`mydaily-semana-${week[0]}-${week.at(-1)}.pdf`);
-            toast('PDF da semana baixado.', 'success');
+            pdf.save(`${info.file}.pdf`);
+            toast(`PDF ${info.name} baixado.`, 'success');
         } catch (e) {
             toast('Falha ao gerar PDF: ' + (e.code || e.message), 'danger');
         } finally {
@@ -4392,6 +4451,9 @@
         $('copy-tasks-confirm').addEventListener('click', copyTasksFromSelectedDate);
         $('export-csv').addEventListener('click', exportCsv);
         $('export-pdf').addEventListener('click', exportPdf);
+        $('period-week').addEventListener('click', () => setPeriodMode('week'));
+        $('period-month').addEventListener('click', () => setPeriodMode('month'));
+        syncPeriodButtons();
         $('rep-prev').addEventListener('change', e => { storageSet('mydaily_rep_prev', e.target.checked ? '1' : '0'); $('base-report-text').value = buildReport(); });
         $('rep-global').addEventListener('change', e => { storageSet('mydaily_rep_global', e.target.checked ? '1' : '0'); $('base-report-text').value = buildReport(); });
         $('rep-hours').addEventListener('change', e => { storageSet('mydaily_rep_hours', e.target.checked ? '1' : '0'); $('base-report-text').value = buildReport(); });
