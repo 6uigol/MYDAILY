@@ -67,6 +67,16 @@ firebase deploy
 Isso publica as regras do Firestore e o site em `https://SEU-PROJETO.web.app`.
 Se preferir não usar o CLI para as regras, copie o conteúdo de `firestore.rules` em **Firestore → Regras → Publicar**.
 
+## 2.1 Domínio próprio na Vercel (mydaily.website)
+
+O `vercel.json` repassa `/__/auth/*` e `/__/firebase/*` para `mydaily-dcccb.firebaseapp.com`. No domínio próprio o app usa esse mesmo domínio como `authDomain`. Sem isso, o Chrome bloqueia o armazenamento de terceiros e o popup do Google fica travado em `about:blank`.
+
+Configuração feita **uma vez só**:
+1. Google Cloud → **APIs e serviços → Credenciais → Web client (auto created by Google Service)** → em **URIs de redirecionamento autorizados**, adicione:
+   - `https://mydaily.website/__/auth/handler`
+   - `https://www.mydaily.website/__/auth/handler`
+2. Firebase → **Authentication → Configurações → Domínios autorizados**: `mydaily.website` e `www.mydaily.website`.
+
 ## 3. Testar localmente (opcional)
 
 ```bash

@@ -893,7 +893,10 @@
     // =====================================================================
     const FIREBASE_CONFIG = {
         apiKey: "AIzaSyDGoUX-LZYOUdXK8bq0sVS0BZ6mtSyj6SU",
-        authDomain: "mydaily-dcccb.firebaseapp.com",
+        // No domínio próprio (Vercel), o login passa por /__/auth deste mesmo domínio (proxy no vercel.json).
+        // Com o authDomain em outro domínio, o Chrome bloqueia o armazenamento de terceiros e o popup
+        // do Google fica travado em about:blank.
+        authDomain: /(^|\.)mydaily\.website$/.test(location.hostname) ? location.hostname : "mydaily-dcccb.firebaseapp.com",
         projectId: "mydaily-dcccb",
         storageBucket: "mydaily-dcccb.firebasestorage.app",
         messagingSenderId: "664603537896",
